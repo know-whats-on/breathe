@@ -1,0 +1,18 @@
+{
+  "name": "BREATHE",
+  "short_name": "BREATHE",
+  "description": "A mobile-first Breathlessness Episode Recovery Plan app.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F7FBF8",
+  "theme_color": "#319A50",
+  "icons": [
+    {
+      "src": "/icons/app-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
+
