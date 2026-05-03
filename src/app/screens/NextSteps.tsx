@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router";
-import { ArrowRight, Check, PhoneCall, Stethoscope, X } from "lucide-react";
+import { ArrowRight, Check, FileImage, PhoneCall, Plus, Stethoscope, X } from "lucide-react";
 import { BETTER_CHECKS } from "../content/planContent";
 import { AppFrame, PrimaryButton, SecondaryButton, Surface } from "../components/AppChrome";
 import { useAppState } from "../state/AppState";
@@ -17,7 +17,8 @@ export default function NextSteps() {
   const [firstChoice, setFirstChoice] = useState<FirstChoice>(null);
 
   const runtime = data.episodeRuntime;
-  const actionPlanLocation = data.recoveryPlan.nextStepsPlan.actionPlanLocation;
+  const actionPlanLocation = data.recoveryPlan.nextStepsPlan.actionPlanLocation.trim();
+  const hasSavedCopdPlan = Boolean(data.copdActionPlan.front && data.copdActionPlan.back);
   const canContinue = firstChoice === "yes" || selectedOutcome !== "uncertain";
 
   const toggleCheck = (check: string) => {
@@ -51,6 +52,10 @@ export default function NextSteps() {
       },
       replace: location.pathname === "/review",
     });
+  };
+
+  const openCopdPlanResources = () => {
+    navigate("/resources#copd-action-plan");
   };
 
   return (
@@ -125,23 +130,51 @@ export default function NextSteps() {
 
       {firstChoice === "not_really" && (
         <div className="mt-4 overflow-hidden rounded-[1.2rem] bg-white shadow-[0_18px_42px_-30px_rgba(15,23,42,0.35)] ring-1 ring-black/5">
-          <button
-            type="button"
-            onClick={() => setSelectedOutcome("action_plan")}
-            className={`block w-full text-left transition ${
+          <div
+            className={`transition ${
               selectedOutcome === "action_plan" ? "ring-2 ring-inset ring-[#319A50]" : ""
             }`}
           >
-            <div className="bg-[#F5C400] px-4 py-2 text-center text-[1rem] font-bold text-slate-900">
-              Refer to your COPD Action Plan
-            </div>
-            <div className="bg-[#FFF4C9] px-4 py-3">
-              <p className="text-[0.95rem] font-semibold text-slate-700">If I have one, I keep it here:</p>
-              <div className="mt-2 min-h-[3rem] rounded-sm bg-white px-3 py-2 text-[0.95rem] leading-relaxed text-slate-700">
-                {actionPlanLocation}
+            <button
+              type="button"
+              onClick={() => setSelectedOutcome("action_plan")}
+              className="block w-full text-left"
+            >
+              <div className="bg-[#F5C400] px-4 py-2 text-center text-[1rem] font-bold text-slate-900">
+                Refer to your COPD Action Plan
               </div>
+            </button>
+            <div className="bg-[#FFF4C9] px-4 py-3">
+              <button
+                type="button"
+                onClick={() => setSelectedOutcome("action_plan")}
+                className="block w-full text-left"
+              >
+                <p className="text-[0.95rem] font-semibold text-slate-700">If I have one, I keep it here:</p>
+                {actionPlanLocation && (
+                  <div className="mt-2 min-h-[3rem] rounded-sm bg-white px-3 py-2 text-[0.95rem] leading-relaxed text-slate-700">
+                    {actionPlanLocation}
+                  </div>
+                )}
+                {!actionPlanLocation && hasSavedCopdPlan && (
+                  <div className="mt-2 flex min-h-[3rem] items-center gap-2 rounded-sm bg-white px-3 py-2 text-[0.95rem] font-semibold leading-relaxed text-slate-700">
+                    <FileImage className="h-4 w-4 shrink-0 text-[#93690B]" />
+                    Front and back COPD plan photos saved.
+                  </div>
+                )}
+              </button>
+              {!actionPlanLocation && (
+                <button
+                  type="button"
+                  onClick={openCopdPlanResources}
+                  className="mt-3 inline-flex min-h-[46px] w-full items-center justify-center gap-2 rounded-[1rem] bg-white px-4 text-[0.95rem] font-semibold text-[#93690B] shadow-sm ring-1 ring-black/5 transition active:scale-[0.98]"
+                >
+                  {hasSavedCopdPlan ? <FileImage className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                  {hasSavedCopdPlan ? "View COPD Plan" : "Add"}
+                </button>
+              )}
             </div>
-          </button>
+          </div>
 
           <button
             type="button"

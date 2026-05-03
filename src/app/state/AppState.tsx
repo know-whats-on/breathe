@@ -12,6 +12,7 @@ import { createDefaultAppData, limitHomeModules } from "../model/types";
 import type {
   AppData,
   ContactSet,
+  CopdActionPlan,
   DiaryEntryUpdateInput,
   EpisodeGuideVariant,
   EpisodeMode,
@@ -40,6 +41,8 @@ interface AppStateContextValue {
     updateSupportPreferences: (supportPreferences: SupportPreferences) => void;
     updateNextStepsPlan: (nextStepsPlan: NextStepsPlan) => void;
     updateContacts: (contacts: ContactSet) => void;
+    updateCopdActionPlan: (copdActionPlan: CopdActionPlan) => void;
+    clearCopdActionPlan: () => void;
     updateTriggers: (triggers: string[]) => void;
     startEpisode: (options?: { mode?: EpisodeMode; guideVariant?: EpisodeGuideVariant }) => void;
     setEpisodeIndex: (index: number) => void;
@@ -170,6 +173,20 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
 
   const updateContacts = useCallback((contacts: ContactSet) => {
     updateData((current) => ({ ...current, contacts }));
+  }, [updateData]);
+
+  const updateCopdActionPlan = useCallback((copdActionPlan: CopdActionPlan) => {
+    updateData((current) => ({ ...current, copdActionPlan }));
+  }, [updateData]);
+
+  const clearCopdActionPlan = useCallback(() => {
+    updateData((current) => ({
+      ...current,
+      copdActionPlan: {
+        front: null,
+        back: null,
+      },
+    }));
   }, [updateData]);
 
   const updateTriggers = useCallback((triggers: string[]) => {
@@ -502,6 +519,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     updateSupportPreferences,
     updateNextStepsPlan,
     updateContacts,
+    updateCopdActionPlan,
+    clearCopdActionPlan,
     updateTriggers,
     startEpisode,
     setEpisodeIndex,
@@ -517,6 +536,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     saveWeatherSnapshot,
   }), [
     addManualDiaryEntry,
+    clearCopdActionPlan,
     clearEpisode,
     completeOnboarding,
     deleteDiaryEntry,
@@ -531,6 +551,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     startEpisode,
     updateDiaryEntry,
     updateContacts,
+    updateCopdActionPlan,
     updateHomeModules,
     updateNextStepsPlan,
     updateRecoveryPlan,

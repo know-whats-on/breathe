@@ -1,4 +1,4 @@
-export const CURRENT_SCHEMA_VERSION = 5;
+export const CURRENT_SCHEMA_VERSION = 6;
 
 export const STRATEGY_BUCKET_ORDER = [
   "STOP",
@@ -107,6 +107,18 @@ export interface NextStepsPlan {
   ifUnsureCall: string;
   medicalAdviceNote: string;
   emergencyCareNote: string;
+}
+
+export interface CopdActionPlanImage {
+  dataUrl: string;
+  capturedAt: string;
+  fileName: string | null;
+  mimeType: string;
+}
+
+export interface CopdActionPlan {
+  front: CopdActionPlanImage | null;
+  back: CopdActionPlanImage | null;
 }
 
 export interface SelfChecklistItem {
@@ -247,6 +259,7 @@ export interface AppData {
   contacts: ContactSet;
   episodeLogs: EpisodeLog[];
   episodeRuntime: EpisodeRuntime | null;
+  copdActionPlan: CopdActionPlan;
   weatherSnapshot: WeatherSnapshot | null;
 }
 
@@ -325,6 +338,13 @@ export function createContactPerson(role: string): ContactPerson {
   };
 }
 
+export function createDefaultCopdActionPlan(): CopdActionPlan {
+  return {
+    front: null,
+    back: null,
+  };
+}
+
 export function createDefaultRecoveryPlan(): RecoveryPlan {
   return {
     order: [...STRATEGY_BUCKET_ORDER],
@@ -399,6 +419,7 @@ export function createDefaultAppData(): AppData {
     },
     episodeLogs: [],
     episodeRuntime: null,
+    copdActionPlan: createDefaultCopdActionPlan(),
     weatherSnapshot: null,
   };
 }
@@ -485,6 +506,37 @@ function hydrateEpisodeLog(raw: unknown): EpisodeLog | null {
   };
 }
 
+function hydrateCopdActionPlanImage(raw: unknown): CopdActionPlanImage | null {
+  if (!raw || typeof raw !== "object") return null;
+
+  const input = raw as Partial<CopdActionPlanImage>;
+  const dataUrl = typeof input.dataUrl === "string" ? input.dataUrl : "";
+
+  if (!dataUrl.startsWith("data:image/")) return null;
+
+  return {
+    dataUrl,
+    capturedAt: typeof input.capturedAt === "string" ? input.capturedAt : new Date().toISOString(),
+    fileName: typeof input.fileName === "string" && input.fileName.trim().length > 0
+      ? input.fileName.trim()
+      : null,
+    mimeType: typeof input.mimeType === "string" && input.mimeType.trim().length > 0
+      ? input.mimeType.trim()
+      : "image/jpeg",
+  };
+}
+
+function hydrateCopdActionPlan(raw: unknown): CopdActionPlan {
+  if (!raw || typeof raw !== "object") return createDefaultCopdActionPlan();
+
+  const input = raw as Partial<CopdActionPlan>;
+
+  return {
+    front: hydrateCopdActionPlanImage(input.front),
+    back: hydrateCopdActionPlanImage(input.back),
+  };
+}
+
 export function hydrateAppData(raw: unknown): AppData {
   const defaults = createDefaultAppData();
   if (!raw || typeof raw !== "object") return defaults;
@@ -516,6 +568,7 @@ export function hydrateAppData(raw: unknown): AppData {
     triggers: Array.isArray(input.triggers) ? input.triggers.filter(Boolean) : defaults.triggers,
     episodeLogs: hydratedLogs,
     episodeRuntime: hydratedRuntime,
+    copdActionPlan: hydrateCopdActionPlan(input.copdActionPlan),
     recoveryPlan: {
       ...defaults.recoveryPlan,
       ...recoveryPlanInput,
