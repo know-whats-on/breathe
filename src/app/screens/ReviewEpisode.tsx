@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from "react-router";
 import { useState } from "react";
 import { ArrowRight } from "lucide-react";
-import { AppFrame, PrimaryButton, SecondaryButton, Surface } from "../components/AppChrome";
+import { AppFrame, PrimaryButton, SecondaryButton } from "../components/AppChrome";
 import {
   EpisodeConfidenceField,
   EpisodeReflectionFields,
@@ -14,6 +14,15 @@ type ReviewState = {
   outcome?: "better" | "action_plan" | "medical_advice" | "emergency_care" | "uncertain";
   reasonBetter?: string;
 };
+
+function ReviewGuideBlock({ title, children }: { title: string; children: string }) {
+  return (
+    <div className="mb-5 border-b border-[#168E43]/12 pb-4">
+      <h2 className="text-[1.35rem] font-bold leading-tight text-[#168E43]">{title}</h2>
+      <p className="mt-2 text-[0.98rem] leading-relaxed text-slate-700">{children}</p>
+    </div>
+  );
+}
 
 export default function ReviewEpisode() {
   const navigate = useNavigate();
@@ -48,40 +57,17 @@ export default function ReviewEpisode() {
 
   return (
     <AppFrame tone="warm">
-      <Surface className="mb-6 border border-[#168E43]/25 bg-white/95">
-        <div className="grid gap-6 sm:grid-cols-2">
-          <div>
-            <h1 className="text-[1.6rem] font-bold leading-tight text-[#168E43]">Reflect</h1>
-            <p className="mt-4 text-[1rem] leading-relaxed text-slate-900">
-              Record what happened, what helped, and what you may want to change for next time.
-            </p>
-          </div>
-
-          <div className="space-y-6">
-            <div>
-              <h2 className="text-[1.6rem] font-bold leading-tight text-[#168E43]">Record</h2>
-              <p className="mt-4 text-[1rem] leading-relaxed text-slate-900">
-                Some people may find the ‘Breathlessness Episode Diary’ in the user guide helpful to see patterns over time.
-              </p>
-            </div>
-
-            <div>
-              <h2 className="text-[1.45rem] font-bold leading-tight text-[#168E43]">Revise and update</h2>
-              <p className="mt-4 text-[1rem] leading-relaxed text-slate-900">
-                If needed, update the strategies in your plan. Ask a healthcare professional for help and practice new
-                strategies before your next episode.
-              </p>
-            </div>
-          </div>
-        </div>
-      </Surface>
-
       <div className="space-y-4">
         <EpisodeTriggerField
           trigger={trigger}
           onTriggerChange={setTrigger}
           triggerOptions={triggerOptions}
           asSurface
+          intro={
+            <ReviewGuideBlock title="Reflect">
+              Record what happened, what helped, and what you may want to change for next time.
+            </ReviewGuideBlock>
+          }
         />
         <EpisodeConfidenceField
           confidence={confidence}
@@ -98,6 +84,17 @@ export default function ReviewEpisode() {
           onSupportNotesChange={setSupportNotes}
           onRevisionSummaryChange={setRevisionSummary}
           asSurface
+          recordIntro={
+            <ReviewGuideBlock title="Record">
+              Some people may find the ‘Breathlessness Episode Diary’ in the user guide helpful to see patterns over time.
+            </ReviewGuideBlock>
+          }
+          revisionIntro={
+            <ReviewGuideBlock title="Revise and update">
+              If needed, update the strategies in your plan. Ask a healthcare professional for help and practice new
+              strategies before your next episode.
+            </ReviewGuideBlock>
+          }
         />
       </div>
 

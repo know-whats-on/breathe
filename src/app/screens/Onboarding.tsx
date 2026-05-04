@@ -147,7 +147,7 @@ export default function Onboarding() {
     };
   }, []);
 
-  const completeOnboarding = (path: string) => {
+  const completeOnboarding = (path: string, options?: { replaceRedirect?: boolean }) => {
     const profile: UserProfile = {
       name: name.trim(),
       email: email.trim(),
@@ -155,7 +155,7 @@ export default function Onboarding() {
       isForSelf: Boolean(isForSelf),
       careRecipientName: careRecipientName.trim(),
     };
-    saveOnboardingRedirect(path);
+    saveOnboardingRedirect(path, { replace: options?.replaceRedirect ?? true });
     actions.completeOnboarding(profile, STARTER_MODULE_RECOMMENDATIONS);
   };
 
@@ -574,7 +574,7 @@ export default function Onboarding() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <SecondaryButton onClick={() => setStep(1)}>Back</SecondaryButton>
-                <SecondaryButton onClick={() => completeOnboarding("/")}>
+                <SecondaryButton onClick={() => completeOnboarding("/", { replaceRedirect: false })}>
                   <span>Finish</span>
                 </SecondaryButton>
               </div>

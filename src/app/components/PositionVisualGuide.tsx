@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
+import { useState } from "react";
 import { X } from "lucide-react";
 
 export const POSITION_TAB_SETS = [
@@ -65,18 +64,6 @@ export const POSITION_TAB_GUIDE_COPY = {
 
 export function getPositionTabDefinition(tabId: PositionTabId) {
   return POSITION_TAB_SETS.find((tab) => tab.id === tabId) ?? POSITION_TAB_SETS[0];
-}
-
-function getRotatingLines(tabId: PositionTabId) {
-  const copy = POSITION_TAB_GUIDE_COPY[tabId];
-  return [
-    copy.heading,
-    copy.subheading,
-    copy.body,
-    ...copy.options,
-    copy.extraLead,
-    ...(copy.extraOptions ?? []),
-  ].filter((line): line is string => Boolean(line));
 }
 
 function PositionGuideDialog({
@@ -168,26 +155,9 @@ export default function PositionVisualGuide({
   className?: string;
 }) {
   const [openGuideTab, setOpenGuideTab] = useState<PositionTabId | null>(null);
-  const [lineIndex, setLineIndex] = useState(0);
   const [failedImages, setFailedImages] = useState<Set<string>>(() => new Set());
   const activeTab = getPositionTabDefinition(activeTabId);
   const currentImage = activeTab.images[imageIndex] ?? activeTab.images[0];
-  const rotatingLines = useMemo(() => getRotatingLines(activeTabId), [activeTabId]);
-  const rotatingLine = rotatingLines[lineIndex % rotatingLines.length] ?? "";
-
-  useEffect(() => {
-    setLineIndex(0);
-  }, [activeTabId]);
-
-  useEffect(() => {
-    if (rotatingLines.length <= 1) return;
-
-    const timer = window.setInterval(() => {
-      setLineIndex((value) => (value + 1) % rotatingLines.length);
-    }, 2600);
-
-    return () => window.clearInterval(timer);
-  }, [rotatingLines.length]);
 
   return (
     <div className={`flex w-full flex-col items-center text-center ${className}`}>
@@ -248,19 +218,8 @@ export default function PositionVisualGuide({
         )}
       </button>
 
-      <div className="mt-3 flex min-h-[4.25rem] w-full max-w-[22rem] items-center justify-center rounded-[1.15rem] bg-white/84 px-4 py-3 shadow-[0_18px_45px_-36px_rgba(15,23,42,0.45)] ring-1 ring-black/5">
-        <AnimatePresence mode="wait">
-          <motion.p
-            key={`${activeTabId}-${rotatingLine}`}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }}
-            transition={{ duration: 0.22, ease: "easeOut" }}
-            className="text-[1rem] font-semibold leading-snug text-[#057EAD]"
-          >
-            {rotatingLine}
-          </motion.p>
-        </AnimatePresence>
+      <div className="mt-3 flex min-h-[3.2rem] w-full max-w-[22rem] items-center justify-center rounded-[1.15rem] bg-white/84 px-4 py-3 shadow-[0_18px_45px_-36px_rgba(15,23,42,0.45)] ring-1 ring-black/5">
+        <p className="text-[1rem] font-semibold leading-snug text-[#057EAD]">Tap Image for Instructions</p>
       </div>
 
       {openGuideTab && <PositionGuideDialog tabId={openGuideTab} onClose={() => setOpenGuideTab(null)} />}

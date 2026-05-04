@@ -4,10 +4,15 @@ function isAppPath(path: string) {
   return path.startsWith("/") && !path.startsWith("//");
 }
 
-export function saveOnboardingRedirect(path: string) {
+type SaveOnboardingRedirectOptions = {
+  replace?: boolean;
+};
+
+export function saveOnboardingRedirect(path: string, options: SaveOnboardingRedirectOptions = {}) {
   if (!isAppPath(path)) return;
 
   try {
+    if (options.replace === false && window.sessionStorage.getItem(ONBOARDING_REDIRECT_KEY)) return;
     window.sessionStorage.setItem(ONBOARDING_REDIRECT_KEY, path);
   } catch {
     // Session storage can be unavailable in private or restricted browser contexts.

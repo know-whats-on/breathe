@@ -6,7 +6,6 @@ import {
   BUCKET_COPY,
   DO_YOUR_FIVE_STEP_TITLES,
   STRATEGY_LIBRARY,
-  THINK_ROTATING_QUOTES,
 } from "../content/planContent";
 import type { StrategyOption } from "../content/planContent";
 import { AppFrame, PrimaryButton, SecondaryButton, Surface } from "../components/AppChrome";
@@ -29,23 +28,9 @@ const ACTUAL_FAN_HANDLE_SRC = "/recovery-step-icons/actual-fan-handle.png";
 const ACTUAL_FAN_BLADES_SRC = "/recovery-step-icons/actual-fan-blades.png";
 const THINK_QUOTE_INTERVAL_MS = 2200;
 const THINK_QUOTE_TRANSITION_SECONDS = 0.24;
-const DEFAULT_BREATHE_OUT_PILLS = [
-  "Focus on the out-breaths",
-  "Breathe around a rectangle",
-  "Use pursed-lip breathing",
-] as const;
 const BREATHE_OUT_RECTANGLE_HELPER =
   "Try to match your breathing to the moving rectangle. If you feel it’s too fast, trace finger around the rectangle with the pace that feels most comfortable to you. Focus on the out-breaths, the in breaths will take care of themselves!";
-const BREATHE_OUT_AUDIO_SRC = "/audio/help-me-recover-breathe-out.mp3";
-const AIRFLOW_PILLS = [
-  "Use a handheld fan",
-  "Use the air conditioning",
-  "Use a fan",
-  "Go outside",
-  "Open a door/window",
-  "Wipe a damp cloth on your face",
-  "Put a damp cloth around your neck",
-] as const;
+const BREATHE_OUT_AUDIO_SRC = "/audio/help-me-recover-breathe-out.m4a";
 const DEFAULT_WARNING_SELF_CHECK_IDS = new Set([
   "different-breathlessness",
   "phlegm-change",
@@ -481,7 +466,7 @@ function ThinkScene({
   showSelfCheck,
   onOpenSelfCheck,
 }: {
-  quote: string;
+  quote: string | null;
   selfCheckComplete: boolean;
   showSelfCheck: boolean;
   onOpenSelfCheck: () => void;
@@ -509,25 +494,36 @@ function ThinkScene({
         {DO_YOUR_FIVE_STEP_TITLES.THINK}
       </h1>
 
-      <div className="mt-3 flex min-h-[3.25rem] w-full max-w-[18rem] items-center justify-center">
-        <AnimatePresence mode="wait">
-          <motion.p
-            key={quote}
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -16 }}
-            transition={{ duration: THINK_QUOTE_TRANSITION_SECONDS, ease: "easeOut" }}
-            className="text-[1rem] font-semibold leading-snug text-[#23683A]"
-          >
-            {quote}
-          </motion.p>
-        </AnimatePresence>
-      </div>
+      {quote && (
+        <div className="mt-3 flex min-h-[3.25rem] w-full max-w-[18rem] items-center justify-center">
+          <AnimatePresence mode="wait">
+            <motion.p
+              key={quote}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -16 }}
+              transition={{ duration: THINK_QUOTE_TRANSITION_SECONDS, ease: "easeOut" }}
+              className="text-[1rem] font-semibold leading-snug text-[#23683A]"
+            >
+              {quote}
+            </motion.p>
+          </AnimatePresence>
+        </div>
+      )}
 
       {showSelfCheck && (
         <div className="mt-4 flex max-w-[18rem] flex-wrap justify-center gap-2">
           <ThinkActionPill completed={selfCheckComplete} onClick={onOpenSelfCheck} />
         </div>
+      )}
+
+      {!quote && !showSelfCheck && (
+        <Surface className="mt-4 max-w-[18rem] p-3.5 text-left">
+          <p className="text-[0.95rem] font-semibold leading-snug text-slate-900">Use your Think step.</p>
+          <p className="mt-1 text-[0.86rem] leading-relaxed text-slate-500">
+            You can personalise this later in My Plan.
+          </p>
+        </Surface>
       )}
     </div>
   );
@@ -571,7 +567,7 @@ function ActualFanVisual() {
         loading="eager"
         decoding="async"
       />
-      <div className="absolute left-1/2 top-0 h-[5.55rem] w-[5.55rem] -translate-x-1/2">
+      <div className="absolute left-1/2 top-[-0.6rem] h-[6.6rem] w-[6.6rem] -translate-x-1/2">
         <motion.img
           src={ACTUAL_FAN_BLADES_SRC}
           alt=""
@@ -587,7 +583,7 @@ function ActualFanVisual() {
   );
 }
 
-function AirflowScene() {
+function AirflowScene({ selectedStrategies }: { selectedStrategies: StrategyOption[] }) {
   return (
     <div className="flex w-full min-w-0 flex-1 flex-col items-center justify-center text-center">
       <div className="relative flex w-full items-center justify-center">
@@ -600,9 +596,16 @@ function AirflowScene() {
       </h1>
 
       <div className="mt-4 flex w-full max-w-[18rem] flex-wrap justify-center gap-2 px-1">
-        {AIRFLOW_PILLS.map((pill) => (
-          <InfoPill key={pill}>{pill}</InfoPill>
-        ))}
+        {selectedStrategies.length > 0 ? (
+          selectedStrategies.map((strategy) => <InfoPill key={strategy.id}>{strategy.label}</InfoPill>)
+        ) : (
+          <Surface className="w-full max-w-[18rem] p-3.5 text-left">
+            <p className="text-[0.95rem] font-semibold leading-snug text-slate-900">Use your Airflow / Cool step.</p>
+            <p className="mt-1 text-[0.86rem] leading-relaxed text-slate-500">
+              You can personalise this later in My Plan.
+            </p>
+          </Surface>
+        )}
       </div>
     </div>
   );
@@ -909,18 +912,15 @@ export default function EpisodeRunner() {
     .filter((strategy): strategy is StrategyOption => Boolean(strategy));
   const selectedThinkStrategies =
     currentBucket === "THINK" ? selectedStrategies.filter((strategy) => strategy.id !== "think-self-check") : [];
-  const selectedThinkQuotes =
-    selectedThinkStrategies.length > 0 ? selectedThinkStrategies.map((strategy) => strategy.label) : THINK_ROTATING_QUOTES;
+  const selectedThinkQuotes = currentBucket === "THINK" ? selectedThinkStrategies.map((strategy) => strategy.label) : [];
   const selectedThinkQuoteSignature = selectedThinkQuotes.join("||");
-  const activeThinkQuote = selectedThinkQuotes[quoteIndex % selectedThinkQuotes.length] ?? THINK_ROTATING_QUOTES[0];
+  const activeThinkQuote =
+    selectedThinkQuotes.length > 0 ? selectedThinkQuotes[quoteIndex % selectedThinkQuotes.length] : null;
   const selectedBreatheOutStrategies = currentBucket === "BREATHE_OUT_SLOWLY" ? selectedStrategies : [];
-  const breatheOutPills =
-    selectedBreatheOutStrategies.length > 0
-      ? selectedBreatheOutStrategies.map((strategy) => strategy.label)
-      : DEFAULT_BREATHE_OUT_PILLS;
+  const breatheOutPills = selectedBreatheOutStrategies.map((strategy) => strategy.label);
   const breatheOutTextSignature = breatheOutPills.join("||");
   const activeBreatheOutText =
-    breatheOutPills[breatheOutTextIndex % breatheOutPills.length] ?? DEFAULT_BREATHE_OUT_PILLS[0];
+    breatheOutPills.length > 0 ? breatheOutPills[breatheOutTextIndex % breatheOutPills.length] : null;
   const showThinkSelfCheck =
     currentBucket === "THINK" && data.recoveryPlan.buckets.THINK.selectedStrategyIds.includes("think-self-check");
   const activeLog = runtime?.logId
@@ -939,6 +939,8 @@ export default function EpisodeRunner() {
     }
 
     setQuoteIndex(0);
+    if (selectedThinkQuotes.length <= 1) return;
+
     const timer = window.setInterval(() => {
       setQuoteIndex((value) => (value + 1) % selectedThinkQuotes.length);
     }, THINK_QUOTE_INTERVAL_MS);
@@ -947,7 +949,7 @@ export default function EpisodeRunner() {
   }, [currentBucket, isSupportAssistMode, selectedThinkQuoteSignature, selectedThinkQuotes.length]);
 
   useEffect(() => {
-    if (!isBreathingStep || isSupportAssistMode) {
+    if (!isBreathingStep || isSupportAssistMode || breatheOutPills.length <= 1) {
       setBreatheOutTextIndex(0);
       return;
     }
@@ -965,6 +967,7 @@ export default function EpisodeRunner() {
     if (!audio) return;
 
     audio.muted = breatheOutAudioMuted;
+    audio.volume = 1;
 
     if (!isBreathingStep || isSupportAssistMode || breatheOutAudioMuted) {
       audio.pause();
@@ -1218,20 +1221,31 @@ export default function EpisodeRunner() {
                 </p>
                 <div className="flex justify-center">
                   <div className="flex w-full max-w-[19rem] flex-col items-center gap-3">
-                    <div className="flex min-h-[3.6rem] w-full items-center justify-center rounded-[1rem] bg-white/84 px-4 py-3 text-center shadow-[0_18px_42px_-30px_rgba(15,23,42,0.36)] ring-1 ring-black/5">
-                      <AnimatePresence mode="wait">
-                        <motion.p
-                          key={activeBreatheOutText}
-                          initial={{ opacity: 0, y: 8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -8 }}
-                          transition={{ duration: THINK_QUOTE_TRANSITION_SECONDS }}
-                          className="text-[1rem] font-semibold leading-snug text-slate-800"
-                        >
-                          {activeBreatheOutText}
-                        </motion.p>
-                      </AnimatePresence>
-                    </div>
+                    {activeBreatheOutText ? (
+                      <div className="flex min-h-[3.6rem] w-full items-center justify-center rounded-[1rem] bg-white/84 px-4 py-3 text-center shadow-[0_18px_42px_-30px_rgba(15,23,42,0.36)] ring-1 ring-black/5">
+                        <AnimatePresence mode="wait">
+                          <motion.p
+                            key={activeBreatheOutText}
+                            initial={{ opacity: 0, y: 8 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -8 }}
+                            transition={{ duration: THINK_QUOTE_TRANSITION_SECONDS }}
+                            className="text-[1rem] font-semibold leading-snug text-slate-800"
+                          >
+                            {activeBreatheOutText}
+                          </motion.p>
+                        </AnimatePresence>
+                      </div>
+                    ) : (
+                      <Surface className="w-full p-3.5 text-left">
+                        <p className="text-[0.95rem] font-semibold leading-snug text-slate-900">
+                          Use your Breathe Out Slowly step.
+                        </p>
+                        <p className="mt-1 text-[0.86rem] leading-relaxed text-slate-500">
+                          You can personalise this later in My Plan.
+                        </p>
+                      </Surface>
+                    )}
                     <button
                       type="button"
                       onClick={toggleBreatheOutAudio}
@@ -1275,7 +1289,7 @@ export default function EpisodeRunner() {
               onTabChange={setPositionTab}
             />
           ) : currentBucket === "AIRFLOW_COOL" ? (
-            <AirflowScene />
+            <AirflowScene selectedStrategies={selectedStrategies} />
           ) : (
             <GenericScene
               currentBucket={currentBucket}

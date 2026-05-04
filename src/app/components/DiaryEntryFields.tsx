@@ -112,15 +112,18 @@ export function EpisodeTriggerField({
   triggerOptions = TRIGGER_SUGGESTIONS,
   asSurface = false,
   className,
+  intro,
 }: {
   trigger: string;
   onTriggerChange: (value: string) => void;
   triggerOptions?: readonly string[];
   asSurface?: boolean;
   className?: string;
+  intro?: ReactNode;
 }) {
   return (
     <SectionWrapper asSurface={asSurface} className={className}>
+      {intro}
       <p className="text-[1.02rem] font-semibold text-slate-900">What made your breathlessness worse?</p>
       <div className="mt-4 flex flex-wrap gap-2">
         {triggerOptions.map((item) => (
@@ -212,6 +215,8 @@ export function EpisodeReflectionFields({
   onRevisionSummaryChange,
   asSurface = false,
   className,
+  recordIntro,
+  revisionIntro,
 }: {
   helped: string;
   didntHelp: string;
@@ -223,9 +228,12 @@ export function EpisodeReflectionFields({
   onRevisionSummaryChange: (value: string) => void;
   asSurface?: boolean;
   className?: string;
+  recordIntro?: ReactNode;
+  revisionIntro?: ReactNode;
 }) {
   return (
     <SectionWrapper asSurface={asSurface} className={className}>
+      {recordIntro}
       <label className="block">
         <span className="mb-2 block text-[0.92rem] font-semibold text-slate-700">
           What strategies worked well?
@@ -266,7 +274,10 @@ export function EpisodeReflectionFields({
       </label>
 
       <label className="mt-4 block">
-        <span className="mb-2 block text-[0.92rem] font-semibold text-slate-700">Revise and update</span>
+        {revisionIntro}
+        <span className={revisionIntro ? "sr-only" : "mb-2 block text-[0.92rem] font-semibold text-slate-700"}>
+          Revise and update
+        </span>
         <textarea
           value={revisionSummary}
           onChange={(event) => onRevisionSummaryChange(event.target.value)}

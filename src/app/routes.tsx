@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Navigate, Outlet, createBrowserRouter } from "react-router";
+import { Navigate, Outlet, createBrowserRouter, useLocation } from "react-router";
 import App from "./App";
 import Home from "./screens/Home";
 import Onboarding from "./screens/Onboarding";
@@ -16,7 +16,7 @@ import PracticeSummary from "./screens/PracticeSummary";
 import Resources from "./screens/Resources";
 import SelfChecklist from "./screens/SelfChecklist";
 import { useAppState } from "./state/AppState";
-import { clearOnboardingRedirect, getOnboardingRedirect } from "./lib/onboardingRedirect";
+import { clearOnboardingRedirect, getOnboardingRedirect, saveOnboardingRedirect } from "./lib/onboardingRedirect";
 
 function LoadingScreen() {
   return <div className="min-h-[100dvh] bg-[linear-gradient(180deg,_rgba(247,251,248,1)_0%,_rgba(255,255,255,1)_42%,_rgba(245,248,249,1)_100%)]" />;
@@ -42,8 +42,25 @@ function OnboardingGate() {
 function AppGate() {
   const { ready, data } = useAppState();
   if (!ready) return <LoadingScreen />;
-  if (!data.onboardingComplete) return <Navigate to="/onboarding" replace />;
+  if (!data.onboardingComplete) return <RedirectToOnboarding />;
   return <Outlet />;
+}
+
+function RedirectToOnboarding() {
+  const location = useLocation();
+  const redirectPath = `${location.pathname}${location.search}${location.hash}`;
+
+  useEffect(() => {
+    saveOnboardingRedirect(redirectPath, { replace: false });
+  }, [redirectPath]);
+
+  return <Navigate to="/onboarding" replace />;
+}
+
+function AppFallbackRedirect() {
+  const { ready, data } = useAppState();
+  if (!ready) return <LoadingScreen />;
+  return <Navigate to={data.onboardingComplete ? "/" : "/onboarding"} replace />;
 }
 
 export const router = createBrowserRouter([
@@ -80,6 +97,7 @@ export const router = createBrowserRouter([
           { path: "/emergency-contacts", element: <Navigate to="/contacts" replace /> },
         ],
       },
+      { path: "*", Component: AppFallbackRedirect },
     ],
   },
 ]);
