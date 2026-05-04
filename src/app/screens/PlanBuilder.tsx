@@ -43,8 +43,8 @@ const SETUP_ORDER_PARAGRAPHS = [
 
 const SETUP_ORDER_PROMPT = "If my breathlessness starts to get worse, I’m going to:";
 
-const SETUP_STRATEGY_INTRO =
-  "From the following section, pick and choose specific strategies to write in your Breathlessness Episode Recovery Plan.";
+const STRATEGY_SELECTION_INTRO =
+  "From the following section, you can pick and choose specific strategies to write in your Breathlessness Episode Recovery Plan. You can also write your own strategies in the box provided at the bottom.";
 
 const SETUP_CUSTOM_NOTE_HELPER = "You may have other strategies that you can write in instead.";
 
@@ -613,7 +613,7 @@ function RectangleBreathingDemo({ onBack }: { onBack: () => void }) {
   );
 }
 
-function PlanSavedToast({ visible }: { visible: boolean }) {
+function PlanSavedToast({ visible, message }: { visible: boolean; message: string }) {
   if (!visible) return null;
 
   return (
@@ -626,7 +626,7 @@ function PlanSavedToast({ visible }: { visible: boolean }) {
         <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/16">
           <Check className="h-4 w-4" />
         </span>
-        Your plan has been saved.
+        {message}
       </div>
     </div>
   );
@@ -647,6 +647,7 @@ export default function PlanBuilder() {
   const [positionImageIndex, setPositionImageIndex] = useState(0);
   const [showRectangleDemo, setShowRectangleDemo] = useState(false);
   const [showPlanSavedToast, setShowPlanSavedToast] = useState(false);
+  const [planSavedToastMessage, setPlanSavedToastMessage] = useState("Your plan has been saved.");
   const currentBucket = activeStepIndex === null ? null : draft.order[activeStepIndex] ?? null;
 
   const saveDraft = (nextDraft: RecoveryPlan) => {
@@ -728,12 +729,15 @@ export default function PlanBuilder() {
 
     if (isSetupMode) {
       setActiveStepIndex(null);
+      setPlanSavedToastMessage("Your plan has been saved.");
       setShowPlanSavedToast(true);
       navigate("/plan", { replace: true });
       return;
     }
 
     setActiveStepIndex(null);
+    setPlanSavedToastMessage("Your Plan has been updated!");
+    setShowPlanSavedToast(true);
   };
 
   const navigateWithPlanBack = (route: string) => {
@@ -828,9 +832,9 @@ export default function PlanBuilder() {
               <p key={paragraph}>{paragraph}</p>
             ))}
           </div>
-          {isSetupMode && currentBucket !== "POSITION" && (
+          {currentBucket !== "POSITION" && (
             <p className="mt-4 text-[0.94rem] font-semibold leading-relaxed text-slate-700">
-              {SETUP_STRATEGY_INTRO}
+              {STRATEGY_SELECTION_INTRO}
             </p>
           )}
         </Surface>
@@ -884,7 +888,7 @@ export default function PlanBuilder() {
           </PrimaryButton>
         </div>
 
-        <PlanSavedToast visible={showPlanSavedToast} />
+        <PlanSavedToast visible={showPlanSavedToast} message={planSavedToastMessage} />
         {!isSetupMode && <FooterNav />}
       </AppFrame>
     );
@@ -903,10 +907,6 @@ export default function PlanBuilder() {
 
       <LoopingDoYourFiveHand className="mt-2" />
 
-      {!isSetupMode && (
-        <p className="mt-5 text-[1.08rem] font-bold leading-snug text-slate-900">{SETUP_ORDER_PROMPT}</p>
-      )}
-
       {isSetupMode && (
         <Surface className="mt-5">
           <div className="space-y-3 text-[0.98rem] leading-relaxed text-slate-500">
@@ -918,14 +918,12 @@ export default function PlanBuilder() {
       )}
 
       <Surface className="mt-5">
-        {isSetupMode && (
-          <>
-            <p className="mb-1 text-[0.95rem] font-semibold leading-relaxed text-[#319A50]">
-              Order your steps below
-            </p>
-            <p className="mb-3 text-[1rem] font-semibold leading-relaxed text-slate-900">{SETUP_ORDER_PROMPT}</p>
-          </>
-        )}
+        <div className="mb-3 space-y-1">
+          <p className="text-[1rem] font-semibold leading-relaxed text-slate-900">{SETUP_ORDER_PROMPT}</p>
+          <p className="text-[0.95rem] font-semibold leading-relaxed text-[#319A50]">
+            Order your steps below
+          </p>
+        </div>
         <div className="overflow-hidden rounded-[1.2rem] ring-1 ring-black/5">
           {draft.order.map((bucket, index) => {
             const step = REORDER_STEP_CONTENT[bucket];
@@ -947,7 +945,7 @@ export default function PlanBuilder() {
                       onClick={() => setActiveStepIndex(index)}
                       className={`mt-2 text-[0.92rem] font-semibold underline-offset-4 active:scale-[0.98] ${positionStyle.actionClass}`}
                     >
-                      Personalise each step
+                      Personalise this step
                     </button>
                   </div>
                   <div className="flex w-9 flex-col items-center justify-center gap-1.5">
@@ -999,7 +997,7 @@ export default function PlanBuilder() {
       </div>
 
       {!isSetupMode && <FooterNav />}
-      <PlanSavedToast visible={showPlanSavedToast} />
+      <PlanSavedToast visible={showPlanSavedToast} message={planSavedToastMessage} />
     </AppFrame>
   );
 }
