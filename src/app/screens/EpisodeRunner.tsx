@@ -12,6 +12,7 @@ import type { StrategyOption } from "../content/planContent";
 import { AppFrame, PrimaryButton, SecondaryButton, Surface } from "../components/AppChrome";
 import BoxBreathingGuide from "../components/BoxBreathingGuide";
 import DoYourFiveHandImage from "../components/DoYourFiveHandImage";
+import PositionVisualGuide, { getPositionTabDefinition, type PositionTabId } from "../components/PositionVisualGuide";
 import { formatElapsedFrom } from "../lib/format";
 import type {
   SelfChecklistItem,
@@ -113,63 +114,6 @@ const SUPPORT_ASSIST_COPY: Record<
     ],
   },
 };
-const POSITION_TAB_SETS = [
-  {
-    id: "standing",
-    label: "Standing",
-    images: [
-      "/recovery-position/Standing%201.svg",
-      "/recovery-position/Standing%202.svg",
-      "/recovery-position/Standing%203.svg",
-    ],
-  },
-  {
-    id: "sitting",
-    label: "Sitting",
-    images: [
-      "/recovery-position/Sitting%201.svg",
-      "/recovery-position/Sitting%202.svg",
-      "/recovery-position/Sitting%203.svg",
-    ],
-  },
-] as const;
-const POSITION_TAB_GUIDE_COPY = {
-  standing: {
-    heading: "Lean Forward | Support Your Elbows and Arms",
-    subheading: "When Standing Up",
-    body: "Bend at your hips to lean forward. To support the weight of your upper body, you can lean over the following:",
-    options: [
-      "Back of a chair",
-      "Kitchen counter",
-      "Table",
-      "Windowsill",
-      "Walking frame",
-      "Shopping trolley",
-      "Fence or railing",
-    ],
-    extraLead: "If you can’t lean forward while standing up:",
-    extraOptions: ["Lean back against a wall, with your feet shoulder width apart"],
-  },
-  sitting: {
-    heading: "When Sitting Down",
-    body: "If you are able to sit down or already sitting, sit up straight in a chair with your feet wide apart. Keep your shoulders down, lean forward and support your arms in one of the following ways:",
-    options: [
-      "Rest your elbows and forearms on your knees",
-      "Lightly stretch your arms in front on a table",
-      "Pile pillows on a table in front, then rest your head and arms on them",
-    ],
-  },
-} satisfies Record<
-  (typeof POSITION_TAB_SETS)[number]["id"],
-  {
-    heading: string;
-    subheading?: string;
-    body: string;
-    options: readonly string[];
-    extraLead?: string;
-    extraOptions?: readonly string[];
-  }
->;
 const STOP_STOMP_CYCLE_SECONDS = 2.8;
 const STOP_STOMP_IMPACT_DELAY_SECONDS = 0.08;
 const STOP_RIPPLE_RING_LAYERS = [
@@ -250,15 +194,10 @@ const STOP_RIPPLE_GLOW_LAYERS = [
 ] as const;
 
 type ThinkSelfCheckDraft = Record<string, ThinkSelfCheckAnswerValue | null>;
-type PositionTabId = (typeof POSITION_TAB_SETS)[number]["id"];
 type RippleOrigin = {
   x: number;
   y: number;
 };
-
-function getPositionTabDefinition(tabId: PositionTabId) {
-  return POSITION_TAB_SETS.find((tab) => tab.id === tabId) ?? POSITION_TAB_SETS[0];
-}
 
 function createEmptyThinkSelfCheckDraft(items: SelfChecklistItem[]): ThinkSelfCheckDraft {
   return Object.fromEntries(items.map((item) => [item.id, null]));
@@ -602,83 +541,21 @@ function PositionScene({
   imageIndex: number;
   onTabChange: (tabId: PositionTabId) => void;
 }) {
-  const activeTab = getPositionTabDefinition(activeTabId);
-  const currentImage = activeTab.images[imageIndex] ?? activeTab.images[0];
-  const guideCopy = POSITION_TAB_GUIDE_COPY[activeTab.id];
-
   return (
     <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-start overflow-y-auto overscroll-contain py-2 text-center">
       <div className="sticky top-0 z-10 w-full bg-[rgba(247,251,248,0.94)] pb-2 pt-1 backdrop-blur-sm">
         <h1 className="text-[clamp(1.8rem,7vw,2.35rem)] font-bold leading-[0.95] text-slate-900">
           {DO_YOUR_FIVE_STEP_TITLES.POSITION}
         </h1>
-
-        <div className="mt-3 flex flex-wrap justify-center gap-2">
-          {POSITION_TAB_SETS.map((tab) => {
-            const isActive = tab.id === activeTabId;
-
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => onTabChange(tab.id)}
-                aria-pressed={isActive}
-                className={`rounded-full px-3 py-2 text-[0.82rem] font-semibold transition active:scale-[0.98] ${
-                  isActive
-                    ? "bg-[#319A50] text-white shadow-[0_18px_40px_-26px_rgba(49,154,80,0.7)]"
-                    : "border border-[#319A50]/16 bg-white/90 text-slate-700 shadow-[0_18px_40px_-30px_rgba(31,41,55,0.35)] ring-1 ring-black/5"
-                }`}
-              >
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
       </div>
 
-      <div className="mt-4 flex w-full shrink-0 items-center justify-center">
-        <img
-          key={`${activeTab.id}-${currentImage}`}
-          src={currentImage}
-          alt={`${activeTab.label} recovery position ${imageIndex + 1}`}
-          className="h-[min(30vh,15rem)] w-full max-w-[20rem] object-contain"
-          loading="eager"
-          decoding="async"
-        />
-      </div>
-
-      <div className="mb-2 mt-4 w-full max-w-[22rem] rounded-[1.25rem] bg-white/90 p-4 text-left shadow-[0_22px_55px_-38px_rgba(15,23,42,0.5)] ring-1 ring-black/5">
-        <h2 className="text-[1.05rem] font-bold leading-tight text-[#057EAD]">{guideCopy.heading}</h2>
-        {guideCopy.subheading && (
-          <p className="mt-3 text-[0.98rem] font-semibold leading-tight text-[#057EAD]">{guideCopy.subheading}</p>
-        )}
-        <p className="mt-2 text-[0.9rem] leading-relaxed text-slate-700">{guideCopy.body}</p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {guideCopy.options.map((option) => (
-            <span
-              key={option}
-              className="rounded-md border-2 border-slate-900 bg-white px-2.5 py-1.5 text-[0.82rem] font-bold leading-tight text-[#155E33]"
-            >
-              {option}
-            </span>
-          ))}
-        </div>
-        {guideCopy.extraLead && guideCopy.extraOptions && (
-          <>
-            <p className="mt-4 text-[0.9rem] leading-relaxed text-slate-700">{guideCopy.extraLead}</p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {guideCopy.extraOptions.map((option) => (
-                <span
-                  key={option}
-                  className="rounded-md border-2 border-slate-900 bg-white px-2.5 py-1.5 text-[0.82rem] font-bold leading-tight text-[#155E33]"
-                >
-                  {option}
-                </span>
-              ))}
-            </div>
-          </>
-        )}
-      </div>
+      <PositionVisualGuide
+        activeTabId={activeTabId}
+        imageIndex={imageIndex}
+        onTabChange={onTabChange}
+        showTitle={false}
+        className="w-full pb-2"
+      />
     </div>
   );
 }

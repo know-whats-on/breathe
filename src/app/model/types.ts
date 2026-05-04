@@ -35,9 +35,16 @@ export const FIXED_HOME_MODULES: HomeModuleKey[] = [
   "WEATHER",
 ];
 export const DEFAULT_HOME_MODULES: HomeModuleKey[] = [];
+export const REQUIRED_BREATHE_OUT_STRATEGY_ID = "breathe-out-breaths";
+export const EVERYDAY_BREATHE_OUT_STRATEGY_IDS = [
+  "breathe-blow-as-you-go",
+  "breathe-paced",
+  "breathe-tummy",
+] as const;
 
 const HOME_MODULE_KEY_SET = new Set<string>(HOME_MODULE_KEYS);
 const FIXED_HOME_MODULE_KEY_SET = new Set<string>(FIXED_HOME_MODULES);
+const EVERYDAY_BREATHE_OUT_STRATEGY_ID_SET = new Set<string>(EVERYDAY_BREATHE_OUT_STRATEGY_IDS);
 
 export function limitHomeModules(homeModules: HomeModuleKey[]) {
   const unique: HomeModuleKey[] = [];
@@ -79,6 +86,24 @@ export interface StrategyBucket {
   type: StrategyBucketType;
   selectedStrategyIds: string[];
   customNote: string;
+}
+
+export function normaliseBreatheOutStrategyIds(selectedStrategyIds: readonly string[] = []) {
+  const next = [REQUIRED_BREATHE_OUT_STRATEGY_ID];
+
+  for (const strategyId of selectedStrategyIds) {
+    if (
+      strategyId === REQUIRED_BREATHE_OUT_STRATEGY_ID ||
+      EVERYDAY_BREATHE_OUT_STRATEGY_ID_SET.has(strategyId) ||
+      next.includes(strategyId)
+    ) {
+      continue;
+    }
+
+    next.push(strategyId);
+  }
+
+  return next;
 }
 
 export interface SupportPreferences {
@@ -145,6 +170,21 @@ export interface RecoveryPlan {
   nextStepsPlan: NextStepsPlan;
   lastReviewedAt: string | null;
   lastPractisedAt: string | null;
+}
+
+export function normaliseRecoveryPlan(recoveryPlan: RecoveryPlan): RecoveryPlan {
+  const breatheOutBucket = recoveryPlan.buckets.BREATHE_OUT_SLOWLY;
+
+  return {
+    ...recoveryPlan,
+    buckets: {
+      ...recoveryPlan.buckets,
+      BREATHE_OUT_SLOWLY: {
+        ...breatheOutBucket,
+        selectedStrategyIds: normaliseBreatheOutStrategyIds(breatheOutBucket.selectedStrategyIds),
+      },
+    },
+  };
 }
 
 export type EpisodeStage = "running" | "next_steps" | "review";
@@ -582,6 +622,10 @@ export function hydrateAppData(raw: unknown): AppData {
         BREATHE_OUT_SLOWLY: {
           ...defaults.recoveryPlan.buckets.BREATHE_OUT_SLOWLY,
           ...(bucketInput.BREATHE_OUT_SLOWLY ?? {}),
+          selectedStrategyIds: normaliseBreatheOutStrategyIds(
+            bucketInput.BREATHE_OUT_SLOWLY?.selectedStrategyIds ??
+              defaults.recoveryPlan.buckets.BREATHE_OUT_SLOWLY.selectedStrategyIds
+          ),
         },
         AIRFLOW_COOL: {
           ...defaults.recoveryPlan.buckets.AIRFLOW_COOL,

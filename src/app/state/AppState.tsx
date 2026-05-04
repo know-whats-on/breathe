@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { loadAppData, saveAppData } from "../lib/storage";
-import { createDefaultAppData, limitHomeModules } from "../model/types";
+import { createDefaultAppData, limitHomeModules, normaliseRecoveryPlan } from "../model/types";
 import type {
   AppData,
   ContactSet,
@@ -147,7 +147,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   }, [updateData]);
 
   const updateRecoveryPlan = useCallback((recoveryPlan: RecoveryPlan) => {
-    updateData((current) => ({ ...current, recoveryPlan }));
+    updateData((current) => ({ ...current, recoveryPlan: normaliseRecoveryPlan(recoveryPlan) }));
   }, [updateData]);
 
   const updateSelfChecklistItems = useCallback((selfChecklistItems: SelfChecklistItem[]) => {

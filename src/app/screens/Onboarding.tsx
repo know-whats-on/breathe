@@ -80,6 +80,11 @@ function generateUniqueId() {
   ).join("-");
 }
 
+function isValidEmail(value: string) {
+  const trimmed = value.trim();
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed);
+}
+
 async function copyTextToClipboard(text: string) {
   try {
     await navigator.clipboard.writeText(text);
@@ -124,8 +129,10 @@ export default function Onboarding() {
 
   const showUniqueId = !email.trim() && uniqueId.length > 0;
   const displayName = getDisplayName(name, isForSelf ?? true, careRecipientName);
+  const hasEmailOrUniqueId = isValidEmail(email) || uniqueId.length > 0;
   const canContinueProfile =
     name.trim().length > 0 &&
+    hasEmailOrUniqueId &&
     isForSelf !== null &&
     (isForSelf || careRecipientName.trim().length > 0);
 
@@ -361,7 +368,7 @@ export default function Onboarding() {
 
               <label className="block">
                 <span className="mb-2 block text-[0.92rem] font-semibold text-slate-700">
-                  Email <span className="font-normal text-slate-400">(optional)</span>
+                  Email
                 </span>
                 <input
                   value={email}

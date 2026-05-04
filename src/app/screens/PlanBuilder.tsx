@@ -1,11 +1,21 @@
-import { useState } from "react";
-import { useNavigate, useSearchParams } from "react-router";
-import { ArrowDown, ArrowUp, Check, ChevronDown, ExternalLink, HeartHandshake, ListChecks } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useLocation, useNavigate, useSearchParams } from "react-router";
+import { ArrowDown, ArrowLeft, ArrowUp, Check, ChevronDown, ExternalLink, HeartHandshake, ListChecks, Play } from "lucide-react";
 import { BUCKET_COPY, STRATEGY_LIBRARY, THINK_STRATEGY_SECTIONS } from "../content/planContent";
 import { AppFrame, FooterNav, PageHeader, PrimaryButton, SecondaryButton, Surface } from "../components/AppChrome";
+import BoxBreathingGuide from "../components/BoxBreathingGuide";
 import LoopingDoYourFiveHand from "../components/LoopingDoYourFiveHand";
+import PositionVisualGuide, { type PositionTabId, getPositionTabDefinition } from "../components/PositionVisualGuide";
+import { getPathWithSearchAndHash } from "../lib/navigation";
 import { useAppState } from "../state/AppState";
-import type { RecoveryPlan, StrategyBucketType } from "../model/types";
+import {
+  EVERYDAY_BREATHE_OUT_STRATEGY_IDS,
+  REQUIRED_BREATHE_OUT_STRATEGY_ID,
+  normaliseBreatheOutStrategyIds,
+  normaliseRecoveryPlan,
+  type RecoveryPlan,
+  type StrategyBucketType,
+} from "../model/types";
 import type { StrategyOption } from "../content/planContent";
 
 function moveItem(order: StrategyBucketType[], index: number, direction: -1 | 1) {
@@ -150,6 +160,21 @@ function getCopyParagraphs(description: string) {
 
 const THINK_STRATEGY_BY_ID = new Map(STRATEGY_LIBRARY.THINK.map((strategy) => [strategy.id, strategy]));
 const THINK_SECTION_SELECTION_LIMIT = 2;
+const BREATHE_OUT_STRATEGY_BY_ID = new Map(
+  STRATEGY_LIBRARY.BREATHE_OUT_SLOWLY.map((strategy) => [strategy.id, strategy])
+);
+const SELECTABLE_BREATHE_OUT_STRATEGY_IDS = [
+  "breathe-rectangle",
+  "breathe-pursed-lip",
+  "breathe-bubbles",
+] as const;
+const EVERYDAY_BREATHE_OUT_STRATEGY_ID_SET = new Set<string>(EVERYDAY_BREATHE_OUT_STRATEGY_IDS);
+
+function getInitialPlanStepIndex(state: unknown, stepCount: number) {
+  if (!state || typeof state !== "object") return null;
+  const value = (state as { planActiveStepIndex?: unknown }).planActiveStepIndex;
+  return typeof value === "number" && value >= 0 && value < stepCount ? value : null;
+}
 
 function SelectionMark({ isSelected }: { isSelected: boolean }) {
   return (
@@ -276,6 +301,131 @@ function StrategySelectionCard({
         </button>
       )}
     </div>
+  );
+}
+
+function LockedStrategyCard({ strategy }: { strategy: StrategyOption }) {
+  const detail = strategy.detail.trim();
+
+  return (
+    <div className="rounded-[1.2rem] border border-[#319A50] bg-[#F5FBF6] px-4 py-4 text-slate-900">
+      <div className="flex items-start gap-3">
+        <span className="mt-0.5">
+          <SelectionMark isSelected />
+        </span>
+        <span className="min-w-0">
+          <span className="flex flex-wrap items-center gap-2 text-[0.98rem] font-semibold">
+            {strategy.label}
+            <span className="rounded-full bg-white px-2.5 py-1 text-[0.72rem] font-bold uppercase tracking-[0.12em] text-[#155E33] ring-1 ring-[#319A50]/16">
+              Always included
+            </span>
+          </span>
+          {detail && <span className="mt-1 block text-[0.9rem] leading-relaxed text-slate-500">{detail}</span>}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function BreatheOutSelectableCard({
+  strategy,
+  isSelected,
+  onToggle,
+  onShowRectangleDemo,
+}: {
+  strategy: StrategyOption;
+  isSelected: boolean;
+  onToggle: () => void;
+  onShowRectangleDemo?: () => void;
+}) {
+  const detail = strategy.detail.trim();
+
+  return (
+    <div
+      className={`rounded-[1.2rem] border px-4 py-4 transition ${
+        isSelected ? "border-[#319A50] bg-[#F5FBF6] text-slate-900" : "border-slate-200 bg-white/88 text-slate-700"
+      }`}
+    >
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-pressed={isSelected}
+        className="flex w-full items-start gap-3 text-left transition active:scale-[0.99]"
+      >
+        <span className="mt-0.5">
+          <SelectionMark isSelected={isSelected} />
+        </span>
+        <span className="min-w-0">
+          <span className="block text-[0.98rem] font-semibold">{strategy.label}</span>
+          {detail && <span className="mt-1 block text-[0.9rem] leading-relaxed text-slate-500">{detail}</span>}
+        </span>
+      </button>
+
+      {onShowRectangleDemo && (
+        <button
+          type="button"
+          onClick={onShowRectangleDemo}
+          className="mt-3 ml-9 inline-flex min-h-10 items-center justify-center gap-2 rounded-full bg-white px-4 py-2 text-[0.86rem] font-semibold text-[#155E33] shadow-sm ring-1 ring-[#319A50]/25 transition active:scale-[0.98]"
+        >
+          <Play className="h-4 w-4 fill-current" />
+          Show me how
+        </button>
+      )}
+    </div>
+  );
+}
+
+function BreatheOutTechniqueOptions({
+  selectedIds,
+  onToggleStrategy,
+  onShowRectangleDemo,
+}: {
+  selectedIds: ReadonlySet<string>;
+  onToggleStrategy: (strategyId: string) => void;
+  onShowRectangleDemo: () => void;
+}) {
+  const focusStrategy = BREATHE_OUT_STRATEGY_BY_ID.get(REQUIRED_BREATHE_OUT_STRATEGY_ID);
+  const selectableStrategies = SELECTABLE_BREATHE_OUT_STRATEGY_IDS.map((strategyId) =>
+    BREATHE_OUT_STRATEGY_BY_ID.get(strategyId)
+  ).filter((strategy): strategy is StrategyOption => Boolean(strategy));
+
+  return (
+    <div className="mt-5 space-y-3">
+      {focusStrategy && <LockedStrategyCard strategy={focusStrategy} />}
+      {selectableStrategies.map((strategy) => (
+        <BreatheOutSelectableCard
+          key={strategy.id}
+          strategy={strategy}
+          isSelected={selectedIds.has(strategy.id)}
+          onToggle={() => onToggleStrategy(strategy.id)}
+          onShowRectangleDemo={strategy.id === "breathe-rectangle" ? onShowRectangleDemo : undefined}
+        />
+      ))}
+    </div>
+  );
+}
+
+function EverydayBreathingTechniques() {
+  const everydayStrategies = EVERYDAY_BREATHE_OUT_STRATEGY_IDS.map((strategyId) =>
+    BREATHE_OUT_STRATEGY_BY_ID.get(strategyId)
+  ).filter((strategy): strategy is StrategyOption => Boolean(strategy));
+
+  return (
+    <section className="mt-5 rounded-[1.2rem] bg-white/78 p-4 ring-1 ring-slate-200/80">
+      <h2 className="text-[1.02rem] font-bold leading-tight text-slate-900">
+        Some techniques you can learn for everyday breathlessness
+      </h2>
+      <div className="mt-3 space-y-3">
+        {everydayStrategies.map((strategy) => (
+          <div key={strategy.id} className="rounded-[1rem] border border-slate-200 bg-white/88 px-4 py-4">
+            <p className="text-[0.98rem] font-semibold text-slate-900">{strategy.label}</p>
+            {strategy.detail.trim() && (
+              <p className="mt-1 text-[0.9rem] leading-relaxed text-slate-500">{strategy.detail}</p>
+            )}
+          </div>
+        ))}
+      </div>
+    </section>
   );
 }
 
@@ -434,18 +584,55 @@ function ThinkStrategyOptions({
   );
 }
 
+function RectangleBreathingDemo({ onBack }: { onBack: () => void }) {
+  return (
+    <AppFrame tone="focus" scrollable={false} contentClassName="pb-[calc(0.9rem+env(safe-area-inset-bottom))]">
+      <div className="relative z-20 flex min-h-0 flex-1 flex-col">
+        <button
+          type="button"
+          onClick={onBack}
+          className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/88 text-slate-700 shadow-sm ring-1 ring-black/5 transition active:scale-[0.97]"
+          aria-label="Back to breathing techniques"
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </button>
+
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center text-center">
+          <p className="text-[0.82rem] font-semibold uppercase tracking-[0.18em] text-[#319A50]">
+            Breathing Around the Rectangle
+          </p>
+          <div className="mt-6">
+            <BoxBreathingGuide />
+          </div>
+          <p className="mt-6 max-w-[20rem] text-[1rem] font-semibold leading-relaxed text-slate-600">
+            Follow the green line around the screen. Breathe in on the short sides and breathe out on the long sides.
+          </p>
+        </div>
+      </div>
+    </AppFrame>
+  );
+}
+
 export default function PlanBuilder() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const { data, actions } = useAppState();
   const isSetupMode = searchParams.get("mode") === "setup";
-  const [draft, setDraft] = useState<RecoveryPlan>(() => structuredClone(data.recoveryPlan));
-  const [activeStepIndex, setActiveStepIndex] = useState<number | null>(null);
+  const currentRoute = getPathWithSearchAndHash(location);
+  const [draft, setDraft] = useState<RecoveryPlan>(() => normaliseRecoveryPlan(structuredClone(data.recoveryPlan)));
+  const [activeStepIndex, setActiveStepIndex] = useState<number | null>(() =>
+    getInitialPlanStepIndex(location.state, data.recoveryPlan.order.length)
+  );
+  const [positionTab, setPositionTab] = useState<PositionTabId>("standing");
+  const [positionImageIndex, setPositionImageIndex] = useState(0);
+  const [showRectangleDemo, setShowRectangleDemo] = useState(false);
   const currentBucket = activeStepIndex === null ? null : draft.order[activeStepIndex] ?? null;
 
   const saveDraft = (nextDraft: RecoveryPlan) => {
-    setDraft(nextDraft);
-    actions.updateRecoveryPlan(nextDraft);
+    const normalisedDraft = normaliseRecoveryPlan(nextDraft);
+    setDraft(normalisedDraft);
+    actions.updateRecoveryPlan(normalisedDraft);
   };
 
   const moveStep = (index: number, direction: -1 | 1) => {
@@ -457,10 +644,19 @@ export default function PlanBuilder() {
   };
 
   const toggleStrategy = (bucket: StrategyBucketType, strategyId: string) => {
+    if (
+      bucket === "BREATHE_OUT_SLOWLY" &&
+      (strategyId === REQUIRED_BREATHE_OUT_STRATEGY_ID || EVERYDAY_BREATHE_OUT_STRATEGY_ID_SET.has(strategyId))
+    ) {
+      return;
+    }
+
     const currentBucketDraft = draft.buckets[bucket];
     const selectedStrategyIds = currentBucketDraft.selectedStrategyIds.includes(strategyId)
       ? currentBucketDraft.selectedStrategyIds.filter((id) => id !== strategyId)
       : [...currentBucketDraft.selectedStrategyIds, strategyId];
+    const nextSelectedStrategyIds =
+      bucket === "BREATHE_OUT_SLOWLY" ? normaliseBreatheOutStrategyIds(selectedStrategyIds) : selectedStrategyIds;
 
     saveDraft(
       withReviewedAt({
@@ -469,7 +665,7 @@ export default function PlanBuilder() {
           ...draft.buckets,
           [bucket]: {
             ...currentBucketDraft,
-            selectedStrategyIds,
+            selectedStrategyIds: nextSelectedStrategyIds,
           },
         },
       })
@@ -519,6 +715,36 @@ export default function PlanBuilder() {
     setActiveStepIndex(null);
   };
 
+  const navigateWithPlanBack = (route: string) => {
+    navigate(route, {
+      state: {
+        backTo: currentRoute,
+        backState: {
+          planActiveStepIndex: activeStepIndex,
+        },
+      },
+    });
+  };
+
+  useEffect(() => {
+    setPositionImageIndex(0);
+  }, [positionTab]);
+
+  useEffect(() => {
+    if (currentBucket !== "POSITION") return;
+
+    const activePositionTab = getPositionTabDefinition(positionTab);
+    const timer = window.setInterval(() => {
+      setPositionImageIndex((value) => (value + 1) % activePositionTab.images.length);
+    }, 2200);
+
+    return () => window.clearInterval(timer);
+  }, [currentBucket, positionTab]);
+
+  if (showRectangleDemo) {
+    return <RectangleBreathingDemo onBack={() => setShowRectangleDemo(false)} />;
+  }
+
   if (currentBucket) {
     const currentBucketDraft = draft.buckets[currentBucket];
     const selectedIds = new Set(currentBucketDraft.selectedStrategyIds);
@@ -530,6 +756,34 @@ export default function PlanBuilder() {
     const descriptionParagraphs = isSetupMode
       ? setupCopy.paragraphs
       : getCopyParagraphs(BUCKET_COPY[currentBucket].description);
+    const customNoteLabel =
+      currentBucket === "BREATHE_OUT_SLOWLY" || currentBucket === "POSITION"
+        ? "My note for this step"
+        : isSetupMode
+        ? "Other strategies"
+        : "My note for this step";
+    const customNotePlaceholder =
+      currentBucket === "BREATHE_OUT_SLOWLY" || currentBucket === "POSITION" || !isSetupMode
+        ? "Add anything that helps you use this step."
+        : "Write your own strategy for this step.";
+    const customNoteField = (
+      <label className="mt-5 block">
+        <span className="mb-2 block text-[0.92rem] font-semibold text-slate-700">
+          {customNoteLabel}
+        </span>
+        {isSetupMode && currentBucket !== "BREATHE_OUT_SLOWLY" && currentBucket !== "POSITION" && (
+          <span className="mb-2 block text-[0.9rem] leading-relaxed text-slate-500">
+            {SETUP_CUSTOM_NOTE_HELPER}
+          </span>
+        )}
+        <textarea
+          value={currentBucketDraft.customNote}
+          onChange={(event) => updateCustomNote(currentBucket, event.target.value)}
+          placeholder={customNotePlaceholder}
+          className="min-h-28 w-full rounded-[1.2rem] border border-slate-200 bg-white px-4 py-3 text-[1rem] leading-relaxed outline-none transition focus:border-[#319A50] focus:ring-2 focus:ring-[#319A50]/10"
+        />
+      </label>
+    );
 
     return (
       <AppFrame tone="focus" withNav={!isSetupMode}>
@@ -546,7 +800,7 @@ export default function PlanBuilder() {
               <p key={paragraph}>{paragraph}</p>
             ))}
           </div>
-          {isSetupMode && (
+          {isSetupMode && currentBucket !== "POSITION" && (
             <p className="mt-4 text-[0.94rem] font-semibold leading-relaxed text-slate-700">
               {SETUP_STRATEGY_INTRO}
             </p>
@@ -557,8 +811,26 @@ export default function PlanBuilder() {
           <ThinkStrategyOptions
             selectedIds={selectedIds}
             onToggleStrategy={(strategyId) => toggleStrategy(currentBucket, strategyId)}
-            onSetupChecklist={() => navigate("/self-checklist", { state: { backTo: "/plan" } })}
+            onSetupChecklist={() => navigateWithPlanBack("/self-checklist")}
           />
+        ) : currentBucket === "POSITION" ? (
+          <PositionVisualGuide
+            activeTabId={positionTab}
+            imageIndex={positionImageIndex}
+            onTabChange={setPositionTab}
+            showTitle={false}
+            className="mt-5"
+          />
+        ) : currentBucket === "BREATHE_OUT_SLOWLY" ? (
+          <>
+            <BreatheOutTechniqueOptions
+              selectedIds={selectedIds}
+              onToggleStrategy={(strategyId) => toggleStrategy(currentBucket, strategyId)}
+              onShowRectangleDemo={() => setShowRectangleDemo(true)}
+            />
+            {customNoteField}
+            <EverydayBreathingTechniques />
+          </>
         ) : (
           <div className="mt-5 space-y-3">
             {STRATEGY_LIBRARY[currentBucket].map((strategy) => (
@@ -567,28 +839,13 @@ export default function PlanBuilder() {
                 strategy={strategy}
                 isSelected={selectedIds.has(strategy.id)}
                 onToggle={() => toggleStrategy(currentBucket, strategy.id)}
-                onActionRoute={(route) => navigate(route)}
+                onActionRoute={navigateWithPlanBack}
               />
             ))}
           </div>
         )}
 
-        <label className="mt-5 block">
-          <span className="mb-2 block text-[0.92rem] font-semibold text-slate-700">
-            {isSetupMode ? "Other strategies" : "My note for this step"}
-          </span>
-          {isSetupMode && (
-            <span className="mb-2 block text-[0.9rem] leading-relaxed text-slate-500">
-              {SETUP_CUSTOM_NOTE_HELPER}
-            </span>
-          )}
-          <textarea
-            value={currentBucketDraft.customNote}
-            onChange={(event) => updateCustomNote(currentBucket, event.target.value)}
-            placeholder={isSetupMode ? "Write your own strategy for this step." : "Add anything that helps you use this step."}
-            className="min-h-28 w-full rounded-[1.2rem] border border-slate-200 bg-white px-4 py-3 text-[1rem] leading-relaxed outline-none transition focus:border-[#319A50] focus:ring-2 focus:ring-[#319A50]/10"
-          />
-        </label>
+        {currentBucket !== "BREATHE_OUT_SLOWLY" && customNoteField}
 
         <div className="mt-auto grid grid-cols-2 gap-3 pt-8">
           <SecondaryButton onClick={goToPreviousStep}>
@@ -631,7 +888,12 @@ export default function PlanBuilder() {
 
       <Surface className="mt-5">
         {isSetupMode && (
-          <p className="mb-3 text-[1rem] font-semibold leading-relaxed text-slate-900">{SETUP_ORDER_PROMPT}</p>
+          <>
+            <p className="mb-1 text-[0.95rem] font-semibold leading-relaxed text-[#319A50]">
+              Order your steps below
+            </p>
+            <p className="mb-3 text-[1rem] font-semibold leading-relaxed text-slate-900">{SETUP_ORDER_PROMPT}</p>
+          </>
         )}
         <div className="overflow-hidden rounded-[1.2rem] ring-1 ring-black/5">
           {draft.order.map((bucket, index) => {
@@ -654,7 +916,7 @@ export default function PlanBuilder() {
                       onClick={() => setActiveStepIndex(index)}
                       className={`mt-2 text-[0.92rem] font-semibold underline-offset-4 active:scale-[0.98] ${positionStyle.actionClass}`}
                     >
-                      Set this step
+                      Personalise each step
                     </button>
                   </div>
                   <div className="flex w-9 flex-col items-center justify-center gap-1.5">
@@ -697,7 +959,7 @@ export default function PlanBuilder() {
             </SecondaryButton>
             <SecondaryButton
               className="w-full"
-              onClick={() => navigate("/self-checklist", { state: { backTo: "/plan" } })}
+              onClick={() => navigate("/self-checklist", { state: { backTo: currentRoute } })}
             >
               Self-Checklist
             </SecondaryButton>

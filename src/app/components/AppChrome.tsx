@@ -1,7 +1,8 @@
 import { ArrowLeft, Home, NotebookTabs, Settings2, LibraryBig } from "lucide-react";
 import { motion } from "motion/react";
 import { forwardRef, type HTMLAttributes, type ReactNode } from "react";
-import { NavLink, useNavigate } from "react-router";
+import { NavLink } from "react-router";
+import { usePreviousScreenBack } from "../lib/navigation";
 
 function joinClasses(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(" ");
@@ -62,14 +63,14 @@ export function PageHeader({
   onBack?: () => void;
   action?: ReactNode;
 }) {
-  const navigate = useNavigate();
+  const goBack = usePreviousScreenBack(backTo ?? "/");
   const handleBack = () => {
     if (onBack) {
       onBack();
       return;
     }
 
-    if (backTo) navigate(backTo);
+    if (backTo) goBack(backTo);
   };
 
   return (

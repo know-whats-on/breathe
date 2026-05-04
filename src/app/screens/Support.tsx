@@ -3,6 +3,7 @@ import { ArrowLeft, HeartHandshake, House } from "lucide-react";
 import { useNavigate } from "react-router";
 import { AppFrame, PrimaryButton, SecondaryButton, Surface } from "../components/AppChrome";
 import { getDisplayName } from "../lib/format";
+import { usePreviousScreenBack } from "../lib/navigation";
 import { useAppState } from "../state/AppState";
 
 const STOP_ICON_SRC = "/recovery-step-icons/stop-naked.svg";
@@ -35,6 +36,7 @@ function TopActionButton({
 
 export default function Support() {
   const navigate = useNavigate();
+  const goBack = usePreviousScreenBack("/");
   const { data, actions } = useAppState();
   const [showHelpIntro, setShowHelpIntro] = useState(false);
 
@@ -110,7 +112,7 @@ export default function Support() {
     <AppFrame tone="warm">
       <div className="flex min-h-0 flex-1 flex-col">
         <div className="mb-6 flex items-center justify-between gap-3">
-          <TopActionButton ariaLabel="Go back" onClick={() => navigate("/")}>
+          <TopActionButton ariaLabel="Go back" onClick={goBack}>
             <ArrowLeft className="h-5 w-5" />
           </TopActionButton>
           <TopActionButton ariaLabel="Go home" onClick={() => navigate("/")}>

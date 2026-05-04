@@ -283,7 +283,7 @@ export default function Home() {
                       toneClass={ACCESSIBLE_WIDGET_TONES.support}
                       accent="bg-violet-600 text-white shadow-[0_18px_40px_-26px_rgba(124,58,237,0.68)]"
                       icon={HeartHandshake}
-                      onClick={() => navigate("/support")}
+                      onClick={() => navigate("/support", { state: { backTo: "/" } })}
                     />
                   <SimpleHomeWidgetCard
                     label="Support Contacts"

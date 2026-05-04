@@ -1,6 +1,6 @@
 import { ListChecks, Plus, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router";
+import { useLocation } from "react-router";
 import {
   AppFrame,
   FooterNav,
@@ -14,6 +14,7 @@ import {
   sanitiseSelfChecklistItems,
   type SelfChecklistItem,
 } from "../model/types";
+import { getStateBackTo, usePreviousScreenBack } from "../lib/navigation";
 import { useAppState } from "../state/AppState";
 
 const TEXTAREA_CLASSNAME =
@@ -32,11 +33,11 @@ function hasEmptyPrompt(items: SelfChecklistItem[]) {
 
 export default function SelfChecklist() {
   const location = useLocation();
-  const navigate = useNavigate();
   const { data, actions } = useAppState();
   const [draftItems, setDraftItems] = useState<SelfChecklistItem[]>(() => data.recoveryPlan.selfChecklistItems);
   const [savedMessage, setSavedMessage] = useState("");
-  const backTo = (location.state as { backTo?: string } | null)?.backTo === "/plan" ? "/plan" : "/resources";
+  const backTo = getStateBackTo(location.state) ?? "/resources";
+  const goBack = usePreviousScreenBack(backTo);
 
   useEffect(() => {
     setDraftItems(data.recoveryPlan.selfChecklistItems);
@@ -69,15 +70,6 @@ export default function SelfChecklist() {
     }
 
     setDraftItems((current) => current.filter((item) => item.id !== id));
-  };
-
-  const goBack = () => {
-    if (window.history.length > 1) {
-      navigate(-1);
-      return;
-    }
-
-    navigate(backTo);
   };
 
   return (
