@@ -330,7 +330,7 @@ export default function Onboarding() {
                       animate={{ opacity: isStarting ? 0.94 : 1, y: isStarting ? 0.5 : 0 }}
                       transition={{ duration: 0.32, ease: "easeOut" }}
                     >
-                      Tap to Start
+                      Take Control
                     </motion.span>
                     <motion.span
                       initial={false}
