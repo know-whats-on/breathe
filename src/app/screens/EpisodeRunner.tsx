@@ -30,7 +30,10 @@ const THINK_QUOTE_INTERVAL_MS = 2200;
 const THINK_QUOTE_TRANSITION_SECONDS = 0.24;
 const BREATHE_OUT_RECTANGLE_HELPER =
   "Try to match your breathing to the moving rectangle. If you feel it’s too fast, trace finger around the rectangle with the pace that feels most comfortable to you. Focus on the out-breaths, the in breaths will take care of themselves!";
-const BREATHE_OUT_AUDIO_SRC = "/audio/help-me-recover-breathe-out.m4a";
+const BREATHE_OUT_AUDIO_SOURCES = [
+  "/audio/help-me-recover-breathe-out.m4a",
+  "/audio/help-me-recover-breathe-out.mp3",
+] as const;
 const DEFAULT_WARNING_SELF_CHECK_IDS = new Set([
   "different-breathlessness",
   "phlegm-change",
@@ -100,6 +103,21 @@ const SUPPORT_ASSIST_COPY: Record<
     ],
   },
 };
+
+async function resolveBreatheOutAudioSource(signal?: AbortSignal) {
+  for (const source of BREATHE_OUT_AUDIO_SOURCES) {
+    try {
+      const response = await fetch(source, { method: "HEAD", signal });
+      const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
+
+      if (response.ok && contentType.startsWith("audio/")) return source;
+    } catch {
+      // Try the next optional audio source.
+    }
+  }
+
+  return null;
+}
 const STOP_STOMP_CYCLE_SECONDS = 2.8;
 const STOP_STOMP_IMPACT_DELAY_SECONDS = 0.08;
 const STOP_RIPPLE_RING_LAYERS = [
@@ -974,18 +992,18 @@ export default function EpisodeRunner() {
       return;
     }
 
-    let cancelled = false;
+    const controller = new AbortController();
 
     const playAudioIfAvailable = async () => {
       try {
         if (!audio.src) {
-          const response = await fetch(BREATHE_OUT_AUDIO_SRC, { method: "HEAD" });
-          if (!response.ok || cancelled) return;
-          audio.src = BREATHE_OUT_AUDIO_SRC;
+          const source = await resolveBreatheOutAudioSource(controller.signal);
+          if (!source || controller.signal.aborted) return;
+          audio.src = source;
           audio.load();
         }
 
-        if (!cancelled) await audio.play();
+        if (!controller.signal.aborted) await audio.play();
       } catch {
         // The audio asset is intentionally optional until the final file is supplied.
       }
@@ -994,7 +1012,7 @@ export default function EpisodeRunner() {
     void playAudioIfAvailable();
 
     return () => {
-      cancelled = true;
+      controller.abort();
       audio.pause();
     };
   }, [breatheOutAudioMuted, isBreathingStep, isSupportAssistMode]);
@@ -1129,6 +1147,7 @@ export default function EpisodeRunner() {
       if (audio) {
         audio.muted = nextMuted;
         if (nextMuted) audio.pause();
+        else void audio.play().catch(() => undefined);
       }
 
       return nextMuted;

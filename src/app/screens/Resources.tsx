@@ -91,16 +91,26 @@ async function compressPlanImage(file: File): Promise<CopdActionPlanImage> {
   };
 }
 
-function formatCapturedAt(value: string) {
+function formatUpdatedAt(value: string) {
   const date = new Date(value);
 
   if (Number.isNaN(date.getTime())) return "Saved";
 
-  return new Intl.DateTimeFormat(undefined, {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  }).format(date);
+  const dateLabel = [
+    String(date.getDate()).padStart(2, "0"),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    date.getFullYear(),
+  ].join("-");
+  const today = new Date();
+  const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+  const startOfSavedDate = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  const daysAgo = Math.max(0, Math.floor((startOfToday - startOfSavedDate) / 86_400_000));
+  const relativeLabel =
+    daysAgo < 31
+      ? `${daysAgo} ${daysAgo === 1 ? "day" : "days"} ago`
+      : `${Math.max(1, Math.floor(daysAgo / 30))} ${Math.floor(daysAgo / 30) === 1 ? "month" : "months"} ago`;
+
+  return `Updated on: ${dateLabel} (${relativeLabel})`;
 }
 
 function downloadFileName(side: CopdPlanSide, image: CopdActionPlanImage) {
@@ -178,9 +188,9 @@ function CopdPlanSideCard({
 
   return (
     <div className="rounded-[1.1rem] border border-slate-200 bg-slate-50 p-3">
-      <div className="flex items-center justify-between gap-3">
+      <div>
         <p className="text-[0.98rem] font-semibold text-slate-900">{label}</p>
-        {image && <p className="text-[0.78rem] font-semibold text-slate-400">{formatCapturedAt(image.capturedAt)}</p>}
+        {image && <p className="mt-1 text-[0.78rem] font-semibold text-slate-500">{formatUpdatedAt(image.capturedAt)}</p>}
       </div>
       <div className="mt-3 flex min-h-[150px] items-center justify-center overflow-hidden rounded-[0.9rem] bg-white ring-1 ring-black/5">
         {image ? (
@@ -348,103 +358,6 @@ export default function Resources() {
       />
 
       <div className="space-y-5">
-        <Surface id="copd-action-plan" ref={copdPlanSectionRef} tabIndex={-1}>
-          <div className="flex items-start gap-3">
-            <div className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[1rem] bg-[#319A50]/10 text-[#319A50]">
-              <FileImage className="h-5 w-5" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-[1.05rem] font-semibold text-slate-900">Add COPD Plan</p>
-              <p className="mt-1 text-[0.92rem] leading-relaxed text-slate-500">
-                {hasFrontAndBack
-                  ? "Your front and back COPD Plan photos are saved here."
-                  : "Take or upload the front and back photos of your COPD Plan."}
-              </p>
-            </div>
-          </div>
-
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            className="hidden"
-            onChange={handlePlanPhotoSelected}
-          />
-
-          <label className="mt-4 block">
-            <span className="mb-2 block text-[0.92rem] font-semibold text-slate-700">Location of paper plan</span>
-            <input
-              value={actionPlanLocation}
-              onChange={(event) => updateActionPlanLocation(event.target.value)}
-              placeholder="e.g. Kitchen drawer, folder by bed"
-              className="min-h-[48px] w-full rounded-[1rem] border border-slate-200 bg-white px-4 text-[0.96rem] text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#319A50] focus:ring-2 focus:ring-[#319A50]/10"
-            />
-          </label>
-
-          <div className="mt-4 grid gap-3">
-            <CopdPlanSideCard
-              side="front"
-              image={plan.front}
-              isProcessing={isProcessing}
-              onCapture={promptForPlanPhoto}
-            />
-            <CopdPlanSideCard
-              side="back"
-              image={plan.back}
-              isProcessing={isProcessing}
-              onCapture={promptForPlanPhoto}
-            />
-          </div>
-
-          {errorMessage && (
-            <p className="mt-3 rounded-[0.9rem] bg-red-50 px-3 py-2 text-[0.9rem] font-semibold text-red-700">
-              {errorMessage}
-            </p>
-          )}
-
-          {hasFrontAndBack ? (
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              <PrimaryButton type="button" onClick={() => setViewerOpen(true)} className="col-span-2 min-h-[50px] py-3">
-                <Eye className="h-4 w-4" />
-                View
-              </PrimaryButton>
-              {plan.front && (
-                <a
-                  href={plan.front.dataUrl}
-                  download={downloadFileName("front", plan.front)}
-                  className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-[1rem] bg-white px-3 text-center text-[0.88rem] font-semibold text-slate-700 shadow-sm ring-1 ring-black/5 transition active:scale-[0.98]"
-                >
-                  <Download className="h-4 w-4" />
-                  Download front
-                </a>
-              )}
-              {plan.back && (
-                <a
-                  href={plan.back.dataUrl}
-                  download={downloadFileName("back", plan.back)}
-                  className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-[1rem] bg-white px-3 text-center text-[0.88rem] font-semibold text-slate-700 shadow-sm ring-1 ring-black/5 transition active:scale-[0.98]"
-                >
-                  <Download className="h-4 w-4" />
-                  Download back
-                </a>
-              )}
-              <button
-                type="button"
-                onClick={deletePlan}
-                className="col-span-2 inline-flex min-h-[48px] items-center justify-center gap-2 rounded-[1rem] bg-red-50 px-4 text-[0.92rem] font-semibold text-red-700 ring-1 ring-red-100 transition active:scale-[0.98]"
-              >
-                <Trash2 className="h-4 w-4" />
-                Delete
-              </button>
-            </div>
-          ) : (
-            <p className="mt-4 rounded-[1rem] bg-[#EAF6DD] px-4 py-3 text-[0.92rem] font-semibold leading-relaxed text-[#236A3D]">
-              Add both the front and back before this plan appears in Next Steps.
-            </p>
-          )}
-        </Surface>
-
         <Surface>
           <p className="text-[1.05rem] font-semibold text-slate-900">
             Guide to creating a Breathlessness Recovery Plan
@@ -501,6 +414,108 @@ export default function Resources() {
               href={COPD_ACTION_PLAN_URL}
             />
           </div>
+
+          <section
+            id="copd-action-plan"
+            ref={copdPlanSectionRef}
+            tabIndex={-1}
+            className="mt-6 rounded-[1.3rem] border border-[#319A50]/12 bg-[#F7FBF8] p-4 outline-none"
+          >
+            <div className="flex items-start gap-3">
+              <div className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-[1rem] bg-[#319A50]/10 text-[#319A50]">
+                <FileImage className="h-5 w-5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-[1.05rem] font-semibold text-slate-900">Add COPD Plan</p>
+                <p className="mt-1 text-[0.92rem] leading-relaxed text-slate-500">
+                  {hasFrontAndBack
+                    ? "Your front and back COPD Plan photos are saved here."
+                    : "If you have one, you can take a picture of it and store your most recent COPD Action Plan in the app"}
+                </p>
+              </div>
+            </div>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={handlePlanPhotoSelected}
+            />
+
+            <label className="mt-4 block">
+              <span className="mb-2 block text-[0.92rem] font-semibold text-slate-700">Location of paper plan</span>
+              <input
+                value={actionPlanLocation}
+                onChange={(event) => updateActionPlanLocation(event.target.value)}
+                placeholder="e.g. Kitchen drawer, folder by bed"
+                className="min-h-[48px] w-full rounded-[1rem] border border-slate-200 bg-white px-4 text-[0.96rem] text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#319A50] focus:ring-2 focus:ring-[#319A50]/10"
+              />
+            </label>
+
+            <div className="mt-4 grid gap-3">
+              <CopdPlanSideCard
+                side="front"
+                image={plan.front}
+                isProcessing={isProcessing}
+                onCapture={promptForPlanPhoto}
+              />
+              <CopdPlanSideCard
+                side="back"
+                image={plan.back}
+                isProcessing={isProcessing}
+                onCapture={promptForPlanPhoto}
+              />
+            </div>
+
+            {errorMessage && (
+              <p className="mt-3 rounded-[0.9rem] bg-red-50 px-3 py-2 text-[0.9rem] font-semibold text-red-700">
+                {errorMessage}
+              </p>
+            )}
+
+            {hasFrontAndBack ? (
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <PrimaryButton type="button" onClick={() => setViewerOpen(true)} className="col-span-2 min-h-[50px] py-3">
+                  <Eye className="h-4 w-4" />
+                  View
+                </PrimaryButton>
+                {plan.front && (
+                  <a
+                    href={plan.front.dataUrl}
+                    download={downloadFileName("front", plan.front)}
+                    className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-[1rem] bg-white px-3 text-center text-[0.88rem] font-semibold text-slate-700 shadow-sm ring-1 ring-black/5 transition active:scale-[0.98]"
+                  >
+                    <Download className="h-4 w-4" />
+                    Download front
+                  </a>
+                )}
+                {plan.back && (
+                  <a
+                    href={plan.back.dataUrl}
+                    download={downloadFileName("back", plan.back)}
+                    className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-[1rem] bg-white px-3 text-center text-[0.88rem] font-semibold text-slate-700 shadow-sm ring-1 ring-black/5 transition active:scale-[0.98]"
+                  >
+                    <Download className="h-4 w-4" />
+                    Download back
+                  </a>
+                )}
+                <button
+                  type="button"
+                  onClick={deletePlan}
+                  className="col-span-2 inline-flex min-h-[48px] items-center justify-center gap-2 rounded-[1rem] bg-red-50 px-4 text-[0.92rem] font-semibold text-red-700 ring-1 ring-red-100 transition active:scale-[0.98]"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete
+                </button>
+              </div>
+            ) : (
+              <p className="mt-4 rounded-[1rem] bg-[#EAF6DD] px-4 py-3 text-[0.92rem] font-semibold leading-relaxed text-[#236A3D]">
+                Add both the front and back before this plan appears in Next Steps.
+              </p>
+            )}
+          </section>
         </Surface>
 
         <Surface>

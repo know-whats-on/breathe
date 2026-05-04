@@ -148,7 +148,7 @@ export default function Support() {
 
         <div className="mt-auto grid gap-3 pt-8">
           <PrimaryButton type="button" onClick={openHelpIntro} className="w-full text-[1.08rem]">
-            I need some help
+            Ask for Support
           </PrimaryButton>
           <SecondaryButton type="button" onClick={() => navigate("/", { replace: true })} className="w-full text-[1.02rem]">
             Return Home
