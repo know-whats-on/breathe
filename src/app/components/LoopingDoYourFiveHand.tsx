@@ -15,11 +15,11 @@ const HAND_FRAMES = [
     imageSrc: "/do-your-five-loop/position.png",
   },
   {
-    label: "Breathe out slowly",
+    label: "Breathe Out Slowly",
     imageSrc: "/do-your-five-loop/blow-air.png",
   },
   {
-    label: "Airflow / Cool",
+    label: "Airflow/Cool",
     imageSrc: "/do-your-five-loop/fan.png",
   },
 ] as const;

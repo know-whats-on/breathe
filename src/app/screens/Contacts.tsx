@@ -10,11 +10,13 @@ function ContactInput({
   value,
   onChange,
   type = "text",
+  placeholder = label,
 }: {
   label: string;
   value: string;
   onChange: (next: string) => void;
   type?: "text" | "tel";
+  placeholder?: string;
 }) {
   return (
     <label className="block">
@@ -24,7 +26,7 @@ function ContactInput({
         onChange={(event) => onChange(event.target.value)}
         type={type}
         inputMode={type === "tel" ? "tel" : undefined}
-        placeholder={label}
+        placeholder={placeholder}
         className="min-h-[54px] w-full rounded-[1rem] border border-slate-200 bg-slate-50 px-4 text-[0.98rem] outline-none transition focus:border-[#319A50] focus:ring-2 focus:ring-[#319A50]/10"
       />
     </label>
@@ -157,6 +159,7 @@ export default function Contacts() {
           <ContactInput
             label="Role"
             value={draft.copdNurse.role}
+            placeholder="e.g. COPD nurse, respiratory specialist"
             onChange={(role) => setDraft((current) => ({ ...current, copdNurse: { ...current.copdNurse, role } }))}
           />
           <ContactInput

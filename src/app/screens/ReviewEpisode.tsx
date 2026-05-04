@@ -39,9 +39,11 @@ export default function ReviewEpisode() {
   const [didntHelp, setDidntHelp] = useState(activeLog?.didntHelp ?? "");
   const [supportNotes, setSupportNotes] = useState(activeLog?.supportNotes ?? "");
   const [revisionSummary, setRevisionSummary] = useState(activeLog?.revisionSummary ?? "");
+  const [successMessage, setSuccessMessage] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const triggerOptions = getEpisodeTriggerOptions(data.triggers);
 
-  const saveReview = () => {
+  const saveReviewEntry = () => {
     actions.saveEpisodeLog({
       outcome: routeState.outcome ?? "uncertain",
       reasonBetter: routeState.reasonBetter ?? activeLog?.reasonBetter ?? "",
@@ -52,7 +54,21 @@ export default function ReviewEpisode() {
       supportNotes: supportNotes.trim(),
       revisionSummary: revisionSummary.trim(),
     });
-    navigate("/", { replace: true });
+  };
+
+  const completeReview = (destination: "/" | "/plan") => {
+    if (isSubmitting) return;
+
+    setIsSubmitting(true);
+    saveReviewEntry();
+    setSuccessMessage("Episode added to your Diary");
+    window.setTimeout(() => {
+      navigate(destination, { replace: true });
+    }, 850);
+  };
+
+  const saveReview = () => {
+    completeReview("/");
   };
 
   return (
@@ -100,18 +116,22 @@ export default function ReviewEpisode() {
 
       <div className="mt-6 grid grid-cols-2 gap-3">
         <SecondaryButton
-          onClick={() => {
-            actions.clearEpisode();
-            navigate("/plan");
-          }}
+          onClick={() => completeReview("/plan")}
+          disabled={isSubmitting}
         >
-          Revise my plan
+          Revise My Plan
         </SecondaryButton>
-        <PrimaryButton onClick={saveReview} className="justify-between">
+        <PrimaryButton onClick={saveReview} disabled={isSubmitting} className="justify-between">
           <span>Save review</span>
           <ArrowRight className="h-5 w-5" />
         </PrimaryButton>
       </div>
+
+      {successMessage && (
+        <div className="fixed bottom-[calc(1.2rem+env(safe-area-inset-bottom))] left-1/2 z-[80] w-[min(22rem,calc(100vw-2rem))] -translate-x-1/2 rounded-full bg-[#236A3D] px-5 py-3 text-center text-[0.92rem] font-semibold text-white shadow-[0_24px_58px_-32px_rgba(35,106,61,0.85)]">
+          {successMessage}
+        </div>
+      )}
     </AppFrame>
   );
 }

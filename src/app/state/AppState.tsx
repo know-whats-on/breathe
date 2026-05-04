@@ -24,6 +24,7 @@ import type {
   NextStepsPlan,
   RecoveryPlan,
   SelfChecklistItem,
+  ThinkSelfCheckEntry,
   SupportPreferences,
   UserProfile,
   WeatherSnapshot,
@@ -50,6 +51,7 @@ interface AppStateContextValue {
     markPlanPractised: () => void;
     markPlanReviewed: () => void;
     addManualDiaryEntry: (entry: ManualDiaryEntryInput) => void;
+    addSelfCheckDiaryEntry: (entry: ThinkSelfCheckEntry) => void;
     updateDiaryEntry: (entry: DiaryEntryUpdateInput) => void;
     deleteDiaryEntry: (id: string) => void;
     patchActiveEpisodeLog: (patch: Partial<EpisodeLog>) => void;
@@ -330,6 +332,35 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     });
   }, [updateData]);
 
+  const addSelfCheckDiaryEntry = useCallback((entry: ThinkSelfCheckEntry) => {
+    updateData((current) => {
+      const timestamp = entry.completedAt || new Date().toISOString();
+      const nextLog: EpisodeLog = {
+        id: crypto.randomUUID(),
+        entryType: "manual",
+        status: "completed",
+        title: "Self Check-in",
+        notes: "",
+        startedAt: timestamp,
+        finishedAt: timestamp,
+        outcome: "uncertain",
+        reasonBetter: "",
+        trigger: "",
+        confidence: 0,
+        helped: "",
+        didntHelp: "",
+        supportNotes: "",
+        revisionSummary: "",
+        thinkSelfCheck: entry,
+      };
+
+      return {
+        ...current,
+        episodeLogs: [nextLog, ...current.episodeLogs],
+      };
+    });
+  }, [updateData]);
+
   const updateDiaryEntry = useCallback((entry: DiaryEntryUpdateInput) => {
     updateData((current) => {
       let nextTrigger = "";
@@ -528,6 +559,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     markPlanPractised,
     markPlanReviewed,
     addManualDiaryEntry,
+    addSelfCheckDiaryEntry,
     updateDiaryEntry,
     deleteDiaryEntry,
     patchActiveEpisodeLog,
@@ -536,6 +568,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
     saveWeatherSnapshot,
   }), [
     addManualDiaryEntry,
+    addSelfCheckDiaryEntry,
     clearCopdActionPlan,
     clearEpisode,
     completeOnboarding,

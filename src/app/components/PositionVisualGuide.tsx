@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { X } from "lucide-react";
 
 export const POSITION_TAB_SETS = [
@@ -23,6 +24,17 @@ export const POSITION_TAB_SETS = [
 ] as const;
 
 export type PositionTabId = (typeof POSITION_TAB_SETS)[number]["id"];
+
+const POSITION_ROTATING_INSTRUCTIONS = [
+  "Lean forward",
+  "Keep your shoulders down",
+  "Support your elbows and arms",
+  "Flop and drop shoulders",
+  "Keep your elbows low",
+] as const;
+
+const POSITION_INSTRUCTION_INTERVAL_MS = 2200;
+const POSITION_INSTRUCTION_TRANSITION_SECONDS = 0.24;
 
 export const POSITION_TAB_GUIDE_COPY = {
   standing: {
@@ -156,8 +168,18 @@ export default function PositionVisualGuide({
 }) {
   const [openGuideTab, setOpenGuideTab] = useState<PositionTabId | null>(null);
   const [failedImages, setFailedImages] = useState<Set<string>>(() => new Set());
+  const [instructionIndex, setInstructionIndex] = useState(0);
   const activeTab = getPositionTabDefinition(activeTabId);
   const currentImage = activeTab.images[imageIndex] ?? activeTab.images[0];
+  const activeInstruction = POSITION_ROTATING_INSTRUCTIONS[instructionIndex % POSITION_ROTATING_INSTRUCTIONS.length];
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setInstructionIndex((value) => (value + 1) % POSITION_ROTATING_INSTRUCTIONS.length);
+    }, POSITION_INSTRUCTION_INTERVAL_MS);
+
+    return () => window.clearInterval(timer);
+  }, []);
 
   return (
     <div className={`flex w-full flex-col items-center text-center ${className}`}>
@@ -220,6 +242,21 @@ export default function PositionVisualGuide({
 
       <div className="mt-3 flex min-h-[3.2rem] w-full max-w-[22rem] items-center justify-center rounded-[1.15rem] bg-white/84 px-4 py-3 shadow-[0_18px_45px_-36px_rgba(15,23,42,0.45)] ring-1 ring-black/5">
         <p className="text-[1rem] font-semibold leading-snug text-[#057EAD]">Tap Image for Instructions</p>
+      </div>
+
+      <div className="mt-2 flex min-h-[3rem] w-full max-w-[22rem] items-center justify-center rounded-[1rem] bg-white/72 px-4 py-2.5 text-center shadow-[0_16px_38px_-34px_rgba(15,23,42,0.42)] ring-1 ring-black/5">
+        <AnimatePresence mode="wait">
+          <motion.p
+            key={activeInstruction}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: POSITION_INSTRUCTION_TRANSITION_SECONDS }}
+            className="text-[0.98rem] font-semibold leading-snug text-slate-800"
+          >
+            {activeInstruction}
+          </motion.p>
+        </AnimatePresence>
       </div>
 
       {openGuideTab && <PositionGuideDialog tabId={openGuideTab} onClose={() => setOpenGuideTab(null)} />}

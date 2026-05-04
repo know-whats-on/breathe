@@ -27,8 +27,8 @@ export const DO_YOUR_FIVE_STEP_TITLES: Record<StrategyBucketType, string> = {
   STOP: "Stop",
   THINK: "Think",
   POSITION: "Position",
-  BREATHE_OUT_SLOWLY: "Breathe out slowly",
-  AIRFLOW_COOL: "Airflow / Cool",
+  BREATHE_OUT_SLOWLY: "Breathe Out Slowly",
+  AIRFLOW_COOL: "Airflow/Cool",
 };
 
 export const BUCKET_COPY: Record<
@@ -53,7 +53,7 @@ export const BUCKET_COPY: Record<
     description: "Find the posture that makes breathing easier for you, whether you are standing or sitting.",
   },
   BREATHE_OUT_SLOWLY: {
-    title: "Breathe out slowly",
+    title: "Breathe Out Slowly",
     eyebrow: "Get the old air out",
     description: "Use the techniques from the guide that help you lengthen the out-breath and slow your breathing down.",
   },

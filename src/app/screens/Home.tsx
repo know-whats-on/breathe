@@ -22,8 +22,16 @@ import {
   Surface,
 } from "../components/AppChrome";
 import { HOME_WIDGET_SHELL_CLASS } from "../components/homeWidgetStyles";
+import {
+  buildThinkSelfCheckEntry,
+  createEmptyThinkSelfCheckDraft,
+  isThinkSelfCheckComplete,
+  ThinkSelfCheckDialog,
+  type ThinkSelfCheckDraft,
+} from "../components/ThinkSelfCheckDialog";
 import WeatherModule from "../components/WeatherModule";
 import { getDisplayName } from "../lib/format";
+import type { ThinkSelfCheckAnswerValue } from "../model/types";
 import { useAppState } from "../state/AppState";
 
 const HOME_WIDGET_GRID_CLASS = "grid w-full grid-cols-2 gap-3.5 px-1 pb-2 pt-1";
@@ -162,6 +170,11 @@ export default function Home() {
   const navigate = useNavigate();
   const { data, actions } = useAppState();
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+  const [selfCheckOpen, setSelfCheckOpen] = useState(false);
+  const [selfCheckMessage, setSelfCheckMessage] = useState("");
+  const [draftSelfCheck, setDraftSelfCheck] = useState<ThinkSelfCheckDraft>(
+    () => createEmptyThinkSelfCheckDraft(data.recoveryPlan.selfChecklistItems)
+  );
   const [currentPage, setCurrentPage] = useState(0);
   const [showSwipeHint, setShowSwipeHint] = useState(false);
   const shouldReduceMotion = useReducedMotion();
@@ -171,6 +184,7 @@ export default function Home() {
   const displayName = profile ? getDisplayName(profile.name, profile.isForSelf, profile.careRecipientName) : "there";
   const activeEpisode = data.episodeRuntime;
   const practiceDisabled = activeEpisode?.mode === "live";
+  const selfChecklistItems = data.recoveryPlan.selfChecklistItems;
 
   const getEpisodeRoute = () => {
     if (activeEpisode?.stage === "review") return "/review";
@@ -224,6 +238,27 @@ export default function Home() {
     }
     actions.startEpisode({ mode: "practice" });
     navigate("/episode");
+  };
+
+  const openSelfCheck = () => {
+    setDraftSelfCheck(createEmptyThinkSelfCheckDraft(selfChecklistItems));
+    setSelfCheckOpen(true);
+  };
+
+  const updateSelfCheckAnswer = (id: string, answer: ThinkSelfCheckAnswerValue) => {
+    setDraftSelfCheck((current) => ({
+      ...current,
+      [id]: answer,
+    }));
+  };
+
+  const saveSelfCheck = () => {
+    if (!isThinkSelfCheckComplete(selfChecklistItems, draftSelfCheck)) return;
+
+    actions.addSelfCheckDiaryEntry(buildThinkSelfCheckEntry(selfChecklistItems, draftSelfCheck));
+    setSelfCheckOpen(false);
+    setSelfCheckMessage("Self Check-in added to your Diary.");
+    window.setTimeout(() => setSelfCheckMessage(""), 1800);
   };
 
   return (
@@ -305,7 +340,7 @@ export default function Home() {
                     toneClass={ACCESSIBLE_WIDGET_TONES.selfCheck}
                     accent="bg-orange-500 text-white shadow-[0_18px_40px_-26px_rgba(249,115,22,0.65)]"
                     icon={BellRing}
-                    onClick={() => navigate("/next-steps")}
+                    onClick={openSelfCheck}
                   />
                   </div>
                 </div>
@@ -323,7 +358,7 @@ export default function Home() {
                     />
                     <CountMetricCard count={data.episodeLogs.length} label="entries" onClick={() => navigate("/diary")} />
                     <SimpleHomeWidgetCard
-                      label="Personalise My Plan"
+                      label="Review My Plan"
                       toneClass={ACCESSIBLE_WIDGET_TONES.review}
                       accent="bg-emerald-600 text-white shadow-[0_18px_40px_-26px_rgba(5,150,105,0.7)]"
                       icon={ClipboardList}
@@ -403,6 +438,24 @@ export default function Home() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      <ThinkSelfCheckDialog
+        open={selfCheckOpen}
+        onOpenChange={setSelfCheckOpen}
+        items={selfChecklistItems}
+        draft={draftSelfCheck}
+        onAnswerChange={updateSelfCheckAnswer}
+        onSave={saveSelfCheck}
+        canSave={isThinkSelfCheckComplete(selfChecklistItems, draftSelfCheck)}
+        description="These answers are saved to your Diary as a self check-in."
+        overlay="fixed"
+      />
+
+      {selfCheckMessage && (
+        <div className="fixed bottom-[calc(6.6rem+env(safe-area-inset-bottom))] left-1/2 z-[80] w-[min(22rem,calc(100vw-2rem))] -translate-x-1/2 rounded-full bg-[#236A3D] px-5 py-3 text-center text-[0.92rem] font-semibold text-white shadow-[0_24px_58px_-32px_rgba(35,106,61,0.85)]">
+          {selfCheckMessage}
         </div>
       )}
 

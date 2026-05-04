@@ -112,11 +112,11 @@ const REORDER_STEP_CONTENT: Record<StrategyBucketType, { label: string; iconSrc:
     iconSrc: "/do-your-five-icons/position-icon.svg",
   },
   BREATHE_OUT_SLOWLY: {
-    label: "Breath control",
+    label: "Breathe Out Slowly",
     iconSrc: "/do-your-five-icons/blow-air-icon.svg",
   },
   AIRFLOW_COOL: {
-    label: "Airflow",
+    label: "Airflow/Cool",
     iconSrc: "/do-your-five-icons/fan-icon.svg",
   },
 };

@@ -220,6 +220,7 @@ function DiaryEntryDetails({ log }: { log: EpisodeLog }) {
       <div className="mt-4 grid gap-3">
         {log.trigger && <DetailSection title="Trigger or context" value={log.trigger} />}
         <DetailSection title="Notes" value={log.notes || "No extra note recorded"} />
+        {log.thinkSelfCheck && <ThinkSelfCheckPanel entry={log.thinkSelfCheck} />}
       </div>
     );
   }

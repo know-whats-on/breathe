@@ -369,9 +369,9 @@ export function sanitiseSelfChecklistItems(
   return next.length > 0 ? next : fallback.map((item) => ({ ...item }));
 }
 
-export function createContactPerson(role: string): ContactPerson {
+export function createContactPerson(role: string, idPrefix = role || "contact"): ContactPerson {
   return {
-    id: `${role.toLowerCase().replace(/\s+/g, "-")}-${crypto.randomUUID()}`,
+    id: `${idPrefix.toLowerCase().replace(/\s+/g, "-")}-${crypto.randomUUID()}`,
     name: "",
     role,
     phone: "",
@@ -451,7 +451,7 @@ export function createDefaultAppData(): AppData {
     contacts: {
       emergencyNumber: "000",
       gp: createContactPerson("GP"),
-      copdNurse: createContactPerson("COPD nurse"),
+      copdNurse: createContactPerson("", "healthcare-professional"),
       supportPeople: [
         createContactPerson("Support person"),
         createContactPerson("Support person"),
@@ -585,6 +585,19 @@ export function hydrateAppData(raw: unknown): AppData {
   const recoveryPlanInput = input.recoveryPlan ?? {};
   const bucketInput = recoveryPlanInput.buckets ?? {};
   const contactsInput = input.contacts ?? {};
+  const hydratedCopdNurse = {
+    ...defaults.contacts.copdNurse,
+    ...(contactsInput.copdNurse ?? {}),
+  };
+
+  if (
+    hydratedCopdNurse.role === "COPD nurse" &&
+    hydratedCopdNurse.name.trim().length === 0 &&
+    hydratedCopdNurse.phone.trim().length === 0
+  ) {
+    hydratedCopdNurse.role = "";
+  }
+
   const hydratedLogs = Array.isArray(input.episodeLogs)
     ? input.episodeLogs.map(hydrateEpisodeLog).filter((log): log is EpisodeLog => Boolean(log))
     : defaults.episodeLogs;
@@ -649,7 +662,7 @@ export function hydrateAppData(raw: unknown): AppData {
       ...defaults.contacts,
       ...contactsInput,
       gp: { ...defaults.contacts.gp, ...(contactsInput.gp ?? {}) },
-      copdNurse: { ...defaults.contacts.copdNurse, ...(contactsInput.copdNurse ?? {}) },
+      copdNurse: hydratedCopdNurse,
       supportPeople: Array.isArray(contactsInput.supportPeople) && contactsInput.supportPeople.length > 0
         ? contactsInput.supportPeople.map((person, index) => ({
             ...createContactPerson("Support person"),

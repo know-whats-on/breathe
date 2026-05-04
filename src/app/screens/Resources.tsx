@@ -377,10 +377,10 @@ export default function Resources() {
         </Surface>
 
         <Surface>
-          <p className="text-[1.05rem] font-semibold text-slate-900">How to use ypur Breathlessness Recovery Plan</p>
+          <p className="text-[1.05rem] font-semibold text-slate-900">How to use your Breathlessness Recovery Plan</p>
           <div className="mt-4">
             <ExternalResourceCard
-              title="How to use ypur Breathlessness Recovery Plan"
+              title="How to use your Breathlessness Recovery Plan"
               description="Open the PDF guide for using your Breathlessness Recovery Plan."
               href={HOW_TO_USE_PLAN_URL}
             />

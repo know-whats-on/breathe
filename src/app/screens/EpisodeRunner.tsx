@@ -12,13 +12,16 @@ import { AppFrame, PrimaryButton, SecondaryButton, Surface } from "../components
 import BoxBreathingGuide from "../components/BoxBreathingGuide";
 import DoYourFiveHandImage from "../components/DoYourFiveHandImage";
 import PositionVisualGuide, { getPositionTabDefinition, type PositionTabId } from "../components/PositionVisualGuide";
+import {
+  buildThinkSelfCheckEntry,
+  createEmptyThinkSelfCheckDraft,
+  createThinkSelfCheckDraft,
+  isThinkSelfCheckComplete,
+  ThinkSelfCheckDialog,
+  type ThinkSelfCheckDraft,
+} from "../components/ThinkSelfCheckDialog";
 import { formatElapsedFrom } from "../lib/format";
-import type {
-  SelfChecklistItem,
-  StrategyBucketType,
-  ThinkSelfCheckAnswerValue,
-  ThinkSelfCheckEntry,
-} from "../model/types";
+import type { StrategyBucketType, ThinkSelfCheckAnswerValue, ThinkSelfCheckEntry } from "../model/types";
 import { useAppState } from "../state/AppState";
 
 const STOP_ICON_SRC = "/recovery-step-icons/stop-naked.svg";
@@ -34,12 +37,6 @@ const BREATHE_OUT_AUDIO_SOURCES = [
   "/audio/help-me-recover-breathe-out.m4a",
   "/audio/help-me-recover-breathe-out.mp3",
 ] as const;
-const DEFAULT_WARNING_SELF_CHECK_IDS = new Set([
-  "different-breathlessness",
-  "phlegm-change",
-  "ankle-swelling",
-  "chest-pain",
-]);
 const SUPPORT_ASSIST_COPY: Record<
   StrategyBucketType,
   { title: string; paragraphs: readonly string[] }
@@ -89,7 +86,7 @@ const SUPPORT_ASSIST_COPY: Record<
     ],
   },
   AIRFLOW_COOL: {
-    title: "Airflow",
+    title: "Airflow/Cool",
     paragraphs: [
       "You can help someone during their breathlessness episode in the following ways:",
       "Know where they keep their handheld fan and bring it to them.",
@@ -197,46 +194,10 @@ const STOP_RIPPLE_GLOW_LAYERS = [
   },
 ] as const;
 
-type ThinkSelfCheckDraft = Record<string, ThinkSelfCheckAnswerValue | null>;
 type RippleOrigin = {
   x: number;
   y: number;
 };
-
-function createEmptyThinkSelfCheckDraft(items: SelfChecklistItem[]): ThinkSelfCheckDraft {
-  return Object.fromEntries(items.map((item) => [item.id, null]));
-}
-
-function createThinkSelfCheckDraft(
-  items: SelfChecklistItem[],
-  entry?: ThinkSelfCheckEntry | null
-): ThinkSelfCheckDraft {
-  const draft = createEmptyThinkSelfCheckDraft(items);
-
-  if (!entry) return draft;
-
-  for (const response of entry.responses) {
-    if (!(response.id in draft)) continue;
-    draft[response.id] = response.answer;
-  }
-
-  return draft;
-}
-
-function isThinkSelfCheckComplete(items: SelfChecklistItem[], draft: ThinkSelfCheckDraft) {
-  return items.every((item) => draft[item.id] !== null);
-}
-
-function buildThinkSelfCheckEntry(items: SelfChecklistItem[], draft: ThinkSelfCheckDraft): ThinkSelfCheckEntry {
-  return {
-    completedAt: new Date().toISOString(),
-    responses: items.map((item) => ({
-      id: item.id,
-      prompt: item.prompt,
-      answer: draft[item.id] as ThinkSelfCheckAnswerValue,
-    })),
-  };
-}
 
 function InfoPill({ children }: { children: string }) {
   return (
@@ -269,29 +230,6 @@ function ThinkActionPill({
   );
 }
 
-function BinaryChoiceButton({
-  active,
-  label,
-  onClick,
-}: {
-  active: boolean;
-  label: "Yes" | "No";
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`min-w-[5.2rem] rounded-full border px-4 py-2.5 text-[0.94rem] font-semibold transition active:scale-[0.98] ${
-        active
-          ? "border-[#319A50] bg-[#319A50] text-white shadow-[0_14px_34px_-24px_rgba(49,154,80,0.75)]"
-          : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-      }`}
-    >
-      {label}
-    </button>
-  );
-}
 
 function StopScene({
   onIconAnchorChange,
@@ -585,7 +523,7 @@ function ActualFanVisual() {
         loading="eager"
         decoding="async"
       />
-      <div className="absolute left-1/2 top-[-0.6rem] h-[6.6rem] w-[6.6rem] -translate-x-1/2">
+      <div className="absolute left-1/2 top-[-0.9rem] h-[7.2rem] w-[7.2rem] -translate-x-1/2">
         <motion.img
           src={ACTUAL_FAN_BLADES_SRC}
           alt=""
@@ -609,8 +547,7 @@ function AirflowScene({ selectedStrategies }: { selectedStrategies: StrategyOpti
       </div>
 
       <h1 className="mt-1 max-w-full px-2 text-center text-[1.8rem] font-bold leading-[0.98] text-slate-900 sm:text-[2.25rem]">
-        <span className="block">Airflow /</span>
-        <span className="block">Cool</span>
+        <span className="block">Airflow/Cool</span>
       </h1>
 
       <div className="mt-4 flex w-full max-w-[18rem] flex-wrap justify-center gap-2 px-1">
@@ -618,7 +555,7 @@ function AirflowScene({ selectedStrategies }: { selectedStrategies: StrategyOpti
           selectedStrategies.map((strategy) => <InfoPill key={strategy.id}>{strategy.label}</InfoPill>)
         ) : (
           <Surface className="w-full max-w-[18rem] p-3.5 text-left">
-            <p className="text-[0.95rem] font-semibold leading-snug text-slate-900">Use your Airflow / Cool step.</p>
+            <p className="text-[0.95rem] font-semibold leading-snug text-slate-900">Use your Airflow/Cool step.</p>
             <p className="mt-1 text-[0.86rem] leading-relaxed text-slate-500">
               You can personalise this later in My Plan.
             </p>
@@ -790,104 +727,6 @@ function GenericScene({
   );
 }
 
-function ThinkSelfCheckDialog({
-  open,
-  onOpenChange,
-  items,
-  draft,
-  onAnswerChange,
-  onSave,
-  canSave,
-  isPracticeMode,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  items: SelfChecklistItem[];
-  draft: ThinkSelfCheckDraft;
-  onAnswerChange: (id: string, answer: ThinkSelfCheckAnswerValue) => void;
-  onSave: () => void;
-  canSave: boolean;
-  isPracticeMode: boolean;
-}) {
-  if (!open) return null;
-
-  return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      className="absolute inset-0 z-[70] flex items-center justify-center bg-slate-900/32 px-3 py-3 backdrop-blur-[2px] sm:px-4 sm:py-4"
-    >
-      <div className="flex max-h-full w-full max-w-[28rem] flex-col overflow-hidden rounded-[1.5rem] bg-[linear-gradient(180deg,_rgba(241,248,243,1)_0%,_rgba(255,255,255,1)_46%,_rgba(245,248,246,1)_100%)] shadow-[0_36px_90px_-34px_rgba(15,23,42,0.42)] ring-1 ring-black/5 sm:rounded-[1.75rem]">
-        <div className="min-h-0 overflow-y-auto px-4 py-5 sm:px-6 sm:py-6">
-          <div className="relative pr-12 text-left">
-            <p className="text-[0.8rem] font-semibold uppercase tracking-[0.18em] text-[#319A50]">
-              Think self-check
-            </p>
-            <h2 className="mt-2 text-[2rem] font-semibold leading-[0.98] text-slate-900">
-              Conduct Self-checkin
-            </h2>
-            <p className="mt-3 text-[0.96rem] leading-relaxed text-slate-500">
-              {isPracticeMode
-                ? "These answers stay inside this practice session and return you to the Think step."
-                : "These answers are saved to this live session straight away, then you return to the Think step."}
-            </p>
-            <button
-              type="button"
-              onClick={() => onOpenChange(false)}
-              className="absolute right-0 top-0 inline-flex h-10 w-10 items-center justify-center rounded-full bg-white/90 text-slate-500 shadow-sm ring-1 ring-black/5 transition hover:text-slate-700 active:scale-[0.97]"
-              aria-label="Close self-check"
-            >
-              <span className="text-xl leading-none">×</span>
-            </button>
-          </div>
-
-          <div className="mt-5 space-y-4">
-            {items.map((item, index) => (
-              <div
-                key={item.id}
-                className="rounded-[1.35rem] bg-white/92 px-4 py-4 shadow-[0_20px_44px_-34px_rgba(31,41,55,0.3)] ring-1 ring-black/5"
-              >
-                <p className="text-[0.76rem] font-semibold uppercase tracking-[0.16em] text-[#319A50]/78">
-                  Question {index + 1}
-                </p>
-                <p className="mt-2 text-[1rem] font-semibold leading-relaxed text-slate-900">
-                  {item.prompt}
-                </p>
-                <div className="mt-4 flex gap-2">
-                  <BinaryChoiceButton
-                    active={draft[item.id] === "yes"}
-                    label="Yes"
-                    onClick={() => onAnswerChange(item.id, "yes")}
-                  />
-                  <BinaryChoiceButton
-                    active={draft[item.id] === "no"}
-                    label="No"
-                    onClick={() => onAnswerChange(item.id, "no")}
-                  />
-                </div>
-                {DEFAULT_WARNING_SELF_CHECK_IDS.has(item.id) && draft[item.id] === "yes" && (
-                  <p className="mt-3 rounded-[0.9rem] bg-[#FFF6E8] px-3 py-2 text-[0.9rem] font-semibold leading-relaxed text-[#8A4B12]">
-                    Consider speaking to your doctor about this.
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <SecondaryButton type="button" className="w-full sm:flex-1" onClick={() => onOpenChange(false)}>
-              Cancel
-            </SecondaryButton>
-            <PrimaryButton type="button" className="w-full sm:flex-1" onClick={onSave} disabled={!canSave}>
-              Save self-check
-            </PrimaryButton>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function EpisodeRunner() {
   const navigate = useNavigate();
   const { data, actions } = useAppState();
@@ -897,6 +736,7 @@ export default function EpisodeRunner() {
   const [quoteIndex, setQuoteIndex] = useState(0);
   const [breatheOutTextIndex, setBreatheOutTextIndex] = useState(0);
   const [breatheOutAudioMuted, setBreatheOutAudioMuted] = useState(false);
+  const breatheOutAutoPlayKeyRef = useRef<string | null>(null);
   const [positionTab, setPositionTab] = useState<PositionTabId>("standing");
   const [positionImageIndex, setPositionImageIndex] = useState(0);
   const [practiceThinkSelfCheck, setPracticeThinkSelfCheck] = useState<ThinkSelfCheckEntry | null>(null);
@@ -939,6 +779,9 @@ export default function EpisodeRunner() {
   const breatheOutTextSignature = breatheOutPills.join("||");
   const activeBreatheOutText =
     breatheOutPills.length > 0 ? breatheOutPills[breatheOutTextIndex % breatheOutPills.length] : null;
+  const breatheOutAudioPlayKey = runtime
+    ? `${runtime.startedAt}:${runtime.currentIndex}:${currentBucket}`
+    : currentBucket;
   const showThinkSelfCheck =
     currentBucket === "THINK" && data.recoveryPlan.buckets.THINK.selectedStrategyIds.includes("think-self-check");
   const activeLog = runtime?.logId
@@ -986,11 +829,16 @@ export default function EpisodeRunner() {
 
     audio.muted = breatheOutAudioMuted;
     audio.volume = 1;
+    audio.loop = false;
 
     if (!isBreathingStep || isSupportAssistMode || breatheOutAudioMuted) {
       audio.pause();
+      if (!isBreathingStep || isSupportAssistMode) breatheOutAutoPlayKeyRef.current = null;
       return;
     }
+
+    if (breatheOutAutoPlayKeyRef.current === breatheOutAudioPlayKey) return;
+    breatheOutAutoPlayKeyRef.current = breatheOutAudioPlayKey;
 
     const controller = new AbortController();
 
@@ -1003,7 +851,14 @@ export default function EpisodeRunner() {
           audio.load();
         }
 
-        if (!controller.signal.aborted) await audio.play();
+        if (!controller.signal.aborted) {
+          try {
+            audio.currentTime = 0;
+          } catch {
+            // Some browsers reject seeking until metadata is ready; playback can still proceed.
+          }
+          await audio.play();
+        }
       } catch {
         // The audio asset is intentionally optional until the final file is supplied.
       }
@@ -1015,7 +870,7 @@ export default function EpisodeRunner() {
       controller.abort();
       audio.pause();
     };
-  }, [breatheOutAudioMuted, isBreathingStep, isSupportAssistMode]);
+  }, [breatheOutAudioMuted, breatheOutAudioPlayKey, isBreathingStep, isSupportAssistMode]);
 
   useEffect(() => {
     setPositionImageIndex(0);
@@ -1147,7 +1002,10 @@ export default function EpisodeRunner() {
       if (audio) {
         audio.muted = nextMuted;
         if (nextMuted) audio.pause();
-        else void audio.play().catch(() => undefined);
+        else {
+          if (audio.ended) audio.currentTime = 0;
+          void audio.play().catch(() => undefined);
+        }
       }
 
       return nextMuted;
@@ -1157,7 +1015,7 @@ export default function EpisodeRunner() {
   return (
     <AppFrame tone="focus" scrollable={false} contentClassName="pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
       <div ref={runnerRef} className="relative flex min-h-0 flex-1 flex-col gap-3">
-        <audio ref={breatheOutAudioRef} preload="none" loop />
+        <audio ref={breatheOutAudioRef} preload="none" />
         {currentBucket === "STOP" && <StopBackgroundRipple origin={stopRippleOrigin} />}
 
         <div className="relative z-20 flex shrink-0 items-center justify-between gap-3">
@@ -1380,7 +1238,11 @@ export default function EpisodeRunner() {
           onAnswerChange={updateDraftAnswer}
           onSave={saveThinkSelfCheck}
           canSave={isThinkSelfCheckComplete(selfChecklistItems, draftThinkSelfCheck)}
-          isPracticeMode={isPracticeMode}
+          description={
+            isPracticeMode
+              ? "These answers stay inside this practice session and return you to the Think step."
+              : "These answers are saved to this live session straight away, then you return to the Think step."
+          }
         />
       </div>
     </AppFrame>
