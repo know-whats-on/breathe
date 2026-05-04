@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { AnimatePresence, motion } from "motion/react";
-import { ArrowLeft, ArrowRight, Check, CircleAlert, RotateCcw } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, CircleAlert, RotateCcw, Volume2, VolumeX } from "lucide-react";
 import {
   BUCKET_COPY,
   DO_YOUR_FIVE_STEP_TITLES,
@@ -36,6 +36,7 @@ const DEFAULT_BREATHE_OUT_PILLS = [
 ] as const;
 const BREATHE_OUT_RECTANGLE_HELPER =
   "Try to match your breathing to the moving rectangle. If you feel it’s too fast, trace finger around the rectangle with the pace that feels most comfortable to you. Focus on the out-breaths, the in breaths will take care of themselves!";
+const BREATHE_OUT_AUDIO_SRC = "/audio/help-me-recover-breathe-out.mp3";
 const AIRFLOW_PILLS = [
   "Use a handheld fan",
   "Use the air conditioning",
@@ -870,8 +871,11 @@ export default function EpisodeRunner() {
   const navigate = useNavigate();
   const { data, actions } = useAppState();
   const runnerRef = useRef<HTMLDivElement | null>(null);
+  const breatheOutAudioRef = useRef<HTMLAudioElement | null>(null);
   const [tick, setTick] = useState(0);
   const [quoteIndex, setQuoteIndex] = useState(0);
+  const [breatheOutTextIndex, setBreatheOutTextIndex] = useState(0);
+  const [breatheOutAudioMuted, setBreatheOutAudioMuted] = useState(false);
   const [positionTab, setPositionTab] = useState<PositionTabId>("standing");
   const [positionImageIndex, setPositionImageIndex] = useState(0);
   const [practiceThinkSelfCheck, setPracticeThinkSelfCheck] = useState<ThinkSelfCheckEntry | null>(null);
@@ -914,6 +918,9 @@ export default function EpisodeRunner() {
     selectedBreatheOutStrategies.length > 0
       ? selectedBreatheOutStrategies.map((strategy) => strategy.label)
       : DEFAULT_BREATHE_OUT_PILLS;
+  const breatheOutTextSignature = breatheOutPills.join("||");
+  const activeBreatheOutText =
+    breatheOutPills[breatheOutTextIndex % breatheOutPills.length] ?? DEFAULT_BREATHE_OUT_PILLS[0];
   const showThinkSelfCheck =
     currentBucket === "THINK" && data.recoveryPlan.buckets.THINK.selectedStrategyIds.includes("think-self-check");
   const activeLog = runtime?.logId
@@ -938,6 +945,56 @@ export default function EpisodeRunner() {
 
     return () => window.clearInterval(timer);
   }, [currentBucket, isSupportAssistMode, selectedThinkQuoteSignature, selectedThinkQuotes.length]);
+
+  useEffect(() => {
+    if (!isBreathingStep || isSupportAssistMode) {
+      setBreatheOutTextIndex(0);
+      return;
+    }
+
+    setBreatheOutTextIndex(0);
+    const timer = window.setInterval(() => {
+      setBreatheOutTextIndex((value) => (value + 1) % breatheOutPills.length);
+    }, THINK_QUOTE_INTERVAL_MS);
+
+    return () => window.clearInterval(timer);
+  }, [breatheOutPills.length, breatheOutTextSignature, isBreathingStep, isSupportAssistMode]);
+
+  useEffect(() => {
+    const audio = breatheOutAudioRef.current;
+    if (!audio) return;
+
+    audio.muted = breatheOutAudioMuted;
+
+    if (!isBreathingStep || isSupportAssistMode || breatheOutAudioMuted) {
+      audio.pause();
+      return;
+    }
+
+    let cancelled = false;
+
+    const playAudioIfAvailable = async () => {
+      try {
+        if (!audio.src) {
+          const response = await fetch(BREATHE_OUT_AUDIO_SRC, { method: "HEAD" });
+          if (!response.ok || cancelled) return;
+          audio.src = BREATHE_OUT_AUDIO_SRC;
+          audio.load();
+        }
+
+        if (!cancelled) await audio.play();
+      } catch {
+        // The audio asset is intentionally optional until the final file is supplied.
+      }
+    };
+
+    void playAudioIfAvailable();
+
+    return () => {
+      cancelled = true;
+      audio.pause();
+    };
+  }, [breatheOutAudioMuted, isBreathingStep, isSupportAssistMode]);
 
   useEffect(() => {
     setPositionImageIndex(0);
@@ -1060,9 +1117,25 @@ export default function EpisodeRunner() {
     setThinkSelfCheckOpen(false);
   };
 
+  const toggleBreatheOutAudio = () => {
+    const audio = breatheOutAudioRef.current;
+
+    setBreatheOutAudioMuted((current) => {
+      const nextMuted = !current;
+
+      if (audio) {
+        audio.muted = nextMuted;
+        if (nextMuted) audio.pause();
+      }
+
+      return nextMuted;
+    });
+  };
+
   return (
     <AppFrame tone="focus" scrollable={false} contentClassName="pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
       <div ref={runnerRef} className="relative flex min-h-0 flex-1 flex-col gap-3">
+        <audio ref={breatheOutAudioRef} preload="none" loop />
         {currentBucket === "STOP" && <StopBackgroundRipple origin={stopRippleOrigin} />}
 
         <div className="relative z-20 flex shrink-0 items-center justify-between gap-3">
@@ -1144,10 +1217,31 @@ export default function EpisodeRunner() {
                   {BREATHE_OUT_RECTANGLE_HELPER}
                 </p>
                 <div className="flex justify-center">
-                  <div className="flex max-w-[18rem] flex-wrap justify-center gap-2">
-                    {breatheOutPills.map((pill) => (
-                      <InfoPill key={pill}>{pill}</InfoPill>
-                    ))}
+                  <div className="flex w-full max-w-[19rem] flex-col items-center gap-3">
+                    <div className="flex min-h-[3.6rem] w-full items-center justify-center rounded-[1rem] bg-white/84 px-4 py-3 text-center shadow-[0_18px_42px_-30px_rgba(15,23,42,0.36)] ring-1 ring-black/5">
+                      <AnimatePresence mode="wait">
+                        <motion.p
+                          key={activeBreatheOutText}
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -8 }}
+                          transition={{ duration: THINK_QUOTE_TRANSITION_SECONDS }}
+                          className="text-[1rem] font-semibold leading-snug text-slate-800"
+                        >
+                          {activeBreatheOutText}
+                        </motion.p>
+                      </AnimatePresence>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={toggleBreatheOutAudio}
+                      aria-pressed={!breatheOutAudioMuted}
+                      aria-label={breatheOutAudioMuted ? "Unmute breathing audio" : "Mute breathing audio"}
+                      className="inline-flex min-h-[42px] items-center justify-center gap-2 rounded-full bg-white/86 px-4 text-[0.88rem] font-semibold text-slate-700 shadow-sm ring-1 ring-black/5 transition active:scale-[0.97]"
+                    >
+                      {breatheOutAudioMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                      {breatheOutAudioMuted ? "Unmute audio" : "Mute audio"}
+                    </button>
                   </div>
                 </div>
 

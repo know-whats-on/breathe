@@ -70,7 +70,7 @@ function HomeWidgetCard({
   onClick,
 }: {
   title: string;
-  summary: string;
+  summary?: string;
   detail?: string;
   accent: string;
   toneClass?: string;
@@ -86,12 +86,20 @@ function HomeWidgetCard({
         <ArrowUpRight className="h-4 w-4 shrink-0 text-slate-400" />
       </div>
       <div className="mt-3.5 min-w-0 flex-1">
-        <p className="text-[0.7rem] font-semibold uppercase leading-[1.15] tracking-[0.14em] text-slate-500 [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:3]">
-          {title}
-        </p>
-        <p className="mt-2 overflow-hidden text-[1.08rem] font-semibold leading-[1.15] text-slate-900 [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
-          {summary}
-        </p>
+        {summary ? (
+          <>
+            <p className="text-[0.7rem] font-semibold uppercase leading-[1.15] tracking-[0.14em] text-slate-500 [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:3]">
+              {title}
+            </p>
+            <p className="mt-2 overflow-hidden text-[1.08rem] font-semibold leading-[1.15] text-slate-900 [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
+              {summary}
+            </p>
+          </>
+        ) : (
+          <p className="mt-2 overflow-hidden text-[1.08rem] font-semibold leading-[1.15] text-slate-900 [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:3]">
+            {title}
+          </p>
+        )}
         {detail ? (
           <p className="mt-1.5 overflow-hidden text-[0.88rem] leading-[1.38] text-slate-600 [display:-webkit-box] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
             {detail}
@@ -278,8 +286,7 @@ export default function Home() {
                 <div data-home-page className={HOME_TRAY_PAGE_CLASS}>
                   <div className={HOME_WIDGET_GRID_CLASS}>
                     <HomeWidgetCard
-                      title="Support or Assistance"
-                      summary="Ask for Assistance"
+                      title="Ask for Support or Assistance"
                       toneClass={ACCESSIBLE_WIDGET_TONES.support}
                       accent="bg-violet-600 text-white shadow-[0_18px_40px_-26px_rgba(124,58,237,0.68)]"
                       icon={HeartHandshake}

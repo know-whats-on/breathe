@@ -613,6 +613,25 @@ function RectangleBreathingDemo({ onBack }: { onBack: () => void }) {
   );
 }
 
+function PlanSavedToast({ visible }: { visible: boolean }) {
+  if (!visible) return null;
+
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className="pointer-events-none fixed inset-x-0 top-[calc(0.85rem+env(safe-area-inset-top))] z-[80] flex justify-center px-4"
+    >
+      <div className="inline-flex max-w-[22rem] items-center gap-2 rounded-full bg-[#155E33] px-4 py-3 text-[0.92rem] font-semibold text-white shadow-[0_18px_50px_-24px_rgba(21,94,51,0.75)] ring-1 ring-white/20">
+        <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/16">
+          <Check className="h-4 w-4" />
+        </span>
+        Your plan has been saved.
+      </div>
+    </div>
+  );
+}
+
 export default function PlanBuilder() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -627,6 +646,7 @@ export default function PlanBuilder() {
   const [positionTab, setPositionTab] = useState<PositionTabId>("standing");
   const [positionImageIndex, setPositionImageIndex] = useState(0);
   const [showRectangleDemo, setShowRectangleDemo] = useState(false);
+  const [showPlanSavedToast, setShowPlanSavedToast] = useState(false);
   const currentBucket = activeStepIndex === null ? null : draft.order[activeStepIndex] ?? null;
 
   const saveDraft = (nextDraft: RecoveryPlan) => {
@@ -708,6 +728,7 @@ export default function PlanBuilder() {
 
     if (isSetupMode) {
       setActiveStepIndex(null);
+      setShowPlanSavedToast(true);
       navigate("/plan", { replace: true });
       return;
     }
@@ -740,6 +761,13 @@ export default function PlanBuilder() {
 
     return () => window.clearInterval(timer);
   }, [currentBucket, positionTab]);
+
+  useEffect(() => {
+    if (!showPlanSavedToast) return;
+
+    const timer = window.setTimeout(() => setShowPlanSavedToast(false), 2600);
+    return () => window.clearTimeout(timer);
+  }, [showPlanSavedToast]);
 
   if (showRectangleDemo) {
     return <RectangleBreathingDemo onBack={() => setShowRectangleDemo(false)} />;
@@ -851,9 +879,12 @@ export default function PlanBuilder() {
           <SecondaryButton onClick={goToPreviousStep}>
             {activeStepIndex === 0 ? "Back to Order" : "Back"}
           </SecondaryButton>
-          <PrimaryButton onClick={goToNextStep}>{isLastStep ? "Finish Plan" : "Next Step"}</PrimaryButton>
+          <PrimaryButton onClick={goToNextStep}>
+            {isLastStep ? (isSetupMode ? "Save My Plan" : "Finish Plan") : "Next Step"}
+          </PrimaryButton>
         </div>
 
+        <PlanSavedToast visible={showPlanSavedToast} />
         {!isSetupMode && <FooterNav />}
       </AppFrame>
     );
@@ -968,6 +999,7 @@ export default function PlanBuilder() {
       </div>
 
       {!isSetupMode && <FooterNav />}
+      <PlanSavedToast visible={showPlanSavedToast} />
     </AppFrame>
   );
 }

@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { ArrowRight, Check, FileImage, PhoneCall, Plus, Stethoscope, X } from "lucide-react";
 import { BETTER_CHECKS } from "../content/planContent";
 import { AppFrame, PrimaryButton, SecondaryButton, Surface } from "../components/AppChrome";
+import { formatElapsedFrom } from "../lib/format";
 import { useAppState } from "../state/AppState";
 
 type Outcome = "better" | "action_plan" | "medical_advice" | "emergency_care" | "uncertain";
@@ -15,11 +16,18 @@ export default function NextSteps() {
   const [checks, setChecks] = useState<string[]>([]);
   const [selectedOutcome, setSelectedOutcome] = useState<Outcome>("uncertain");
   const [firstChoice, setFirstChoice] = useState<FirstChoice>(null);
+  const [tick, setTick] = useState(0);
 
   const runtime = data.episodeRuntime;
+  const sessionTime = runtime ? formatElapsedFrom(runtime.startedAt) : null;
   const actionPlanLocation = data.recoveryPlan.nextStepsPlan.actionPlanLocation.trim();
   const hasSavedCopdPlan = Boolean(data.copdActionPlan.front && data.copdActionPlan.back);
   const canContinue = firstChoice === "yes" || selectedOutcome !== "uncertain";
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setTick((value) => value + 1), 1000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   const toggleCheck = (check: string) => {
     const nextChecks = checks.includes(check)
@@ -64,6 +72,16 @@ export default function NextSteps() {
         <p className="text-[0.82rem] font-semibold uppercase tracking-[0.18em] text-[#E88C5D]">
           Decide next steps
         </p>
+        <p className="mt-4 text-[1rem] font-semibold leading-relaxed text-slate-600">
+          If 10-15 minutes have passed since starting your plan, choose your next steps. Ask yourself,
+        </p>
+        {sessionTime && (
+          <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-white/86 px-3 py-2 text-[0.86rem] font-semibold text-slate-600 shadow-sm ring-1 ring-black/5">
+            <span>Session time</span>
+            <span className="text-slate-900">{sessionTime}</span>
+            <span className="sr-only">{tick}</span>
+          </div>
+        )}
         <h1 className="mt-3 text-[2.35rem] font-bold leading-[0.98] text-slate-900">
           Am I getting better?
         </h1>
@@ -104,26 +122,34 @@ export default function NextSteps() {
       </div>
 
       {firstChoice === "yes" && (
-        <Surface className="mt-5 border border-[#319A50]/18 bg-[#EAF6DD]">
-          <p className="text-[1.02rem] font-semibold text-slate-900">I am feeling better because:</p>
-          <div className="mt-3 space-y-3">
-            {BETTER_CHECKS.map((check) => (
-              <button
-                type="button"
-                key={check}
-                onClick={() => toggleCheck(check)}
-                className="flex w-full items-center gap-3 rounded-xl bg-white/0 px-1 py-1 text-left transition active:scale-[0.99]"
-              >
-                <span
-                  className={`flex h-6 w-6 shrink-0 items-center justify-center border-2 ${
-                    checks.includes(check) ? "border-[#168E43] bg-[#168E43]" : "border-[#168E43] bg-white"
-                  }`}
+        <Surface className="mt-5 overflow-hidden border border-[#319A50]/18 bg-[#EAF6DD] p-0">
+          <p className="bg-[#168E43] px-4 py-2 text-center text-[1rem] font-bold text-white">
+            Return slowly to normal activity
+          </p>
+          <div className="px-4 py-4">
+            <p className="text-[1.02rem] font-semibold text-slate-900">I am feeling better because:</p>
+            <div className="mt-3 space-y-3">
+              {BETTER_CHECKS.map((check) => (
+                <button
+                  type="button"
+                  key={check}
+                  onClick={() => toggleCheck(check)}
+                  className="flex w-full items-center gap-3 rounded-xl bg-white/0 px-1 py-1 text-left transition active:scale-[0.99]"
                 >
-                  {checks.includes(check) && <Check className="h-4 w-4 text-white" />}
-                </span>
-                <span className="text-[1rem] font-semibold leading-snug text-slate-900">{check}</span>
-              </button>
-            ))}
+                  <span
+                    className={`flex h-6 w-6 shrink-0 items-center justify-center border-2 ${
+                      checks.includes(check) ? "border-[#168E43] bg-[#168E43]" : "border-[#168E43] bg-white"
+                    }`}
+                  >
+                    {checks.includes(check) && <Check className="h-4 w-4 text-white" />}
+                  </span>
+                  <span className="text-[1rem] font-semibold leading-snug text-slate-900">{check}</span>
+                </button>
+              ))}
+            </div>
+            <p className="mt-4 text-[0.98rem] font-semibold leading-relaxed text-slate-700">
+              Take it slow and pace yourself. You need time to recover. When you’re feeling well enough, reflect on what happened.
+            </p>
           </div>
         </Surface>
       )}
@@ -145,33 +171,28 @@ export default function NextSteps() {
               </div>
             </button>
             <div className="bg-[#FFF4C9] px-4 py-3">
+              <p className="text-[0.95rem] font-semibold text-slate-700">If I have one, I keep it here:</p>
               <button
                 type="button"
-                onClick={() => setSelectedOutcome("action_plan")}
-                className="block w-full text-left"
+                onClick={openCopdPlanResources}
+                className="mt-3 inline-flex min-h-[46px] w-full items-center justify-center gap-2 rounded-[1rem] bg-white px-4 text-[0.95rem] font-semibold text-[#93690B] shadow-sm ring-1 ring-black/5 transition active:scale-[0.98]"
               >
-                <p className="text-[0.95rem] font-semibold text-slate-700">If I have one, I keep it here:</p>
-                {actionPlanLocation && (
-                  <div className="mt-2 min-h-[3rem] rounded-sm bg-white px-3 py-2 text-[0.95rem] leading-relaxed text-slate-700">
-                    {actionPlanLocation}
-                  </div>
-                )}
-                {!actionPlanLocation && hasSavedCopdPlan && (
-                  <div className="mt-2 flex min-h-[3rem] items-center gap-2 rounded-sm bg-white px-3 py-2 text-[0.95rem] font-semibold leading-relaxed text-slate-700">
-                    <FileImage className="h-4 w-4 shrink-0 text-[#93690B]" />
-                    Front and back COPD plan photos saved.
-                  </div>
-                )}
+                {hasSavedCopdPlan ? <FileImage className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                {hasSavedCopdPlan ? "View COPD Plan" : "Add"}
               </button>
-              {!actionPlanLocation && (
-                <button
-                  type="button"
-                  onClick={openCopdPlanResources}
-                  className="mt-3 inline-flex min-h-[46px] w-full items-center justify-center gap-2 rounded-[1rem] bg-white px-4 text-[0.95rem] font-semibold text-[#93690B] shadow-sm ring-1 ring-black/5 transition active:scale-[0.98]"
-                >
-                  {hasSavedCopdPlan ? <FileImage className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-                  {hasSavedCopdPlan ? "View COPD Plan" : "Add"}
-                </button>
+              {actionPlanLocation && (
+                <div className="mt-3 rounded-sm bg-white px-3 py-2">
+                  <p className="text-[0.76rem] font-semibold uppercase tracking-[0.12em] text-[#93690B]">
+                    Location of paper plan
+                  </p>
+                  <p className="mt-1 text-[0.95rem] leading-relaxed text-slate-700">{actionPlanLocation}</p>
+                </div>
+              )}
+              {hasSavedCopdPlan && (
+                <div className="mt-2 flex min-h-[3rem] items-center gap-2 rounded-sm bg-white px-3 py-2 text-[0.95rem] font-semibold leading-relaxed text-slate-700">
+                  <FileImage className="h-4 w-4 shrink-0 text-[#93690B]" />
+                  Front and back COPD plan photos saved.
+                </div>
               )}
             </div>
           </div>

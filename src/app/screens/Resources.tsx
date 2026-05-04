@@ -285,6 +285,7 @@ export default function Resources() {
   const plan = data.copdActionPlan;
   const hasFrontAndBack = Boolean(plan.front && plan.back);
   const hasAnyPhoto = Boolean(plan.front || plan.back);
+  const actionPlanLocation = data.recoveryPlan.nextStepsPlan.actionPlanLocation;
 
   useEffect(() => {
     if (location.hash !== "#copd-action-plan") return;
@@ -322,6 +323,13 @@ export default function Resources() {
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const updateActionPlanLocation = (actionPlanLocation: string) => {
+    actions.updateNextStepsPlan({
+      ...data.recoveryPlan.nextStepsPlan,
+      actionPlanLocation,
+    });
   };
 
   const deletePlan = () => {
@@ -363,6 +371,16 @@ export default function Resources() {
             className="hidden"
             onChange={handlePlanPhotoSelected}
           />
+
+          <label className="mt-4 block">
+            <span className="mb-2 block text-[0.92rem] font-semibold text-slate-700">Location of paper plan</span>
+            <input
+              value={actionPlanLocation}
+              onChange={(event) => updateActionPlanLocation(event.target.value)}
+              placeholder="e.g. Kitchen drawer, folder by bed"
+              className="min-h-[48px] w-full rounded-[1rem] border border-slate-200 bg-white px-4 text-[0.96rem] text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#319A50] focus:ring-2 focus:ring-[#319A50]/10"
+            />
+          </label>
 
           <div className="mt-4 grid gap-3">
             <CopdPlanSideCard
