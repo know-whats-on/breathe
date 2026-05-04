@@ -3,6 +3,7 @@ import { ArrowRight, Check, Copy, Shield, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { STARTER_MODULE_RECOMMENDATIONS } from "../content/planContent";
 import { AppFrame, PrimaryButton, ProgressDots, SecondaryButton, Surface, ToggleChip } from "../components/AppChrome";
+import LoopingDoYourFiveHand from "../components/LoopingDoYourFiveHand";
 import { useAppState } from "../state/AppState";
 import type { UserProfile } from "../model/types";
 import { getDisplayName } from "../lib/format";
@@ -283,6 +284,11 @@ export default function Onboarding() {
               />
             </div>
             <div className="relative flex w-full max-w-[20.5rem] flex-col items-center">
+              <LoopingDoYourFiveHand
+                className="mb-5"
+                showLabel={false}
+                handClassName="w-[8.6rem] sm:w-[9.4rem]"
+              />
               <h1 className="max-w-[20.5rem] text-[2.12rem] font-bold leading-[1.04] text-[#319A50]">
                 My Breathlessness Episode Recovery Plan
               </h1>

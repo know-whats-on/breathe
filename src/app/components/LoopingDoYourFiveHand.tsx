@@ -24,7 +24,15 @@ const HAND_FRAMES = [
   },
 ] as const;
 
-export default function LoopingDoYourFiveHand({ className = "" }: { className?: string }) {
+export default function LoopingDoYourFiveHand({
+  className = "",
+  showLabel = true,
+  handClassName = "w-[11.5rem]",
+}: {
+  className?: string;
+  showLabel?: boolean;
+  handClassName?: string;
+}) {
   const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
@@ -39,14 +47,16 @@ export default function LoopingDoYourFiveHand({ className = "" }: { className?: 
 
   return (
     <div className={className}>
-      <div className="mx-auto text-center">
-        <p className="text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-[#319A50]">
-          Do Your Five
-        </p>
-      </div>
+      {showLabel && (
+        <div className="mx-auto text-center">
+          <p className="text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-[#319A50]">
+            Do Your Five
+          </p>
+        </div>
+      )}
 
       <div
-        className="relative mx-auto mt-3 w-[11.5rem]"
+        className={`relative mx-auto ${showLabel ? "mt-3" : ""} ${handClassName}`}
         style={{ aspectRatio: "262 / 378" }}
         aria-label="Animated hand guide cycling through the five steps"
       >
